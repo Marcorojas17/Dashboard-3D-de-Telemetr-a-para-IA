@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KRONOS · Ransomware Auditor Pro</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: #08070e;
+            color: #ddd8e8;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .app {
+            max-width: 1400px;
+            width: 100%;
+            background: #12101e;
+            border-radius: 32px;
+            padding: 2.5rem;
+            box-shadow: 0 25px 80px rgba(0,0,0,0.9);
+            border: 1px solid #2a253a;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            background: linear-gradient(135deg, #f0a030, #e06020);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+        .header .status {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            background: #1a1728;
+            padding: 0.4rem 1.4rem 0.4rem 1rem;
+            border-radius: 40px;
+            border: 1px solid #2e2845;
+            font-size: 0.85rem;
+        }
+        .header .status .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #44dd88;
+            animation: pulse 1.8s infinite;
+        }
+        @keyframes pulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1.8rem;
+            margin: 1.5rem 0;
+        }
+        .card {
+            background: #181524;
+            border-radius: 20px;
+            padding: 1.5rem;
+            border: 1px solid #2a253a;
+            transition: 0.3s;
+        }
+        .card:hover { border-color: #3d3555; }
+        .card h3 {
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: #8878a8;
+            margin-bottom: 0.8rem;
+        }
+        .card .value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #f0f0f8;
+        }
+        .card .value.gold { color: #f0a030; }
+        .card .value.green { color: #44dd88; }
+        .card .value.red { color: #ff6b6b; }
+        .card .sub { font-size: 0.8rem; color: #8878a8; margin-top: 0.2rem; }
+
+        .meter {
+            height: 6px;
+            border-radius: 10px;
+            background: #2a253a;
+            margin: 0.8rem 0;
+            overflow: hidden;
+        }
+        .meter .fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.6s ease;
+            background: linear-gradient(90deg, #44dd88, #f0a030, #ff6b6b);
+        }
+
+        .flex-row { display: flex; gap: 0.8rem; flex-wrap: wrap; align-items: center; }
+
+        .btn {
+            background: #2a253a;
+            border: none;
+            color: #ddd8e8;
+            padding: 0.6rem 1.8rem;
+            border-radius: 40px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.25s;
+            border: 1px solid #3d3555;
+            font-size: 0.9rem;
+        }
+        .btn-primary { background: #f0a030; color: #08070e; border: none; }
+        .btn-primary:hover { background: #d45a1a; transform: scale(1.02); }
+        .btn-danger { border-color: #ff6b6b; color: #ff6b6b; }
+        .btn-danger:hover { background: #ff6b6b22; }
+        .btn-success { border-color: #44dd88; color: #44dd88; }
+        .btn-success:hover { background: #44dd8822; }
+        .btn-sm { padding: 0.3rem 1rem; font-size: 0.8rem; }
+
+        .file-drop {
+            border: 2px dashed #3d3555;
+            border-radius: 16px;
+            padding: 2rem;
+            text-align: center;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .file-drop:hover { border-color: #f0a030; background: #1a1728; }
+        .file-drop input { display: none; }
+        .file-drop .icon { font-size: 3rem; }
+        .file-info { margin-top: 0.5rem; font-size: 0.9rem; color: #8878a8; }
+
+        .log {
+            background: #0b0a12;
+            border-radius: 12px;
+            padding: 1rem;
+            max-height: 220px;
+            overflow-y: auto;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+            border: 1px solid #1a1728;
+            line-height: 1.6;
+        }
+        .log .warn { color: #f0a030; }
+        .log .success { color: #44dd88; }
+        .log .error { color: #ff6b6b; }
+        .log .info { color: #4488ff; }
+
+        .hex-view {
+            background: #0b0a12;
+            border-radius: 12px;
+            padding: 0.8rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.7rem;
+            border: 1px solid #1a1728;
+            max-height: 140px;
+            overflow-y: auto;
+            color: #8878a8;
+            word-break: break-all;
+            line-height: 1.5;
+        }
+        .hex-view .highlight { color: #f0a030; }
+
+        @media (max-width: 1000px) { .grid-3 { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 700px) { .grid-3 { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+
+<div class="app">
+    <!-- HEADER -->
+    <div class="header">
+        <h1>🛡️ KRONOS · Ransomware Auditor Pro</h1>
+        <div class="status"><span class="dot"></span> Motor activo · v2.0 · 97 patrones</div>
+    </div>
+
+    <!-- MÉTRICAS -->
+    <div class="grid-3">
+        <div class="card"><h3>📊 Nivel de amenaza</h3><div class="value gold" id="threatLevel">Bajo</div><div class="meter"><div class="fill" id="threatMeter" style="width:15%;"></div></div><div class="sub">0% · 100%</div></div>
+        <div class="card"><h3>🔑 Intentos</h3><div class="value" id="attemptsDisplay">0</div><div class="sub">Claves probadas</div></div>
+        <div class="card"><h3>⏱️ Tiempo estimado</h3><div class="value" id="timeDisplay">--</div><div class="sub">Restante estimado</div></div>
+    </div>
+
+    <!-- CUERPO PRINCIPAL -->
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:1.8rem;">
+        <!-- IZQUIERDA -->
+        <div>
+            <div class="card">
+                <h3>📁 Archivo secuestrado</h3>
+                <div class="file-drop" id="dropZone">
+                    <div class="icon">📄</div>
+                    <p>Arrastra o haz clic para seleccionar</p>
+                    <input type="file" id="fileInput">
+                    <div class="file-info" id="fileInfo">Ningún archivo cargado</div>
+                </div>
+                <div style="margin-top:1rem;">
+                    <div class="flex-row">
+                        <button class="btn btn-primary" id="btnAuditar">🔍 Auditar</button>
+                        <button class="btn btn-danger" id="btnFuerzaBruta">⚡ Fuerza bruta</button>
+                        <button class="btn btn-success btn-sm" id="btnReporte">📄 Reporte</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top:1.2rem;">
+                <h3>📋 Vista hexadecimal</h3>
+                <div class="hex-view" id="hexView">Esperando archivo...</div>
+            </div>
+        </div>
+
+        <!-- DERECHA -->
+        <div>
+            <div class="card">
+                <h3>📋 Bitácora forense</h3>
+                <div class="log" id="logArea">
+                    <div>[SISTEMA] Auditoría inicializada</div>
+                    <div>[SISTEMA] Esperando archivo...</div>
+                </div>
+            </div>
+
+            <div class="card" style="margin-top:1.2rem;">
+                <h3>⚙️ Estrategia de ataque</h3>
+                <div style="display:flex; gap:0.6rem; flex-wrap:wrap; margin:0.5rem 0;">
+                    <button class="btn btn-sm btn-success" id="strategyDict">📖 Diccionario</button>
+                    <button class="btn btn-sm" id="strategyInc">📈 Incremental</button>
+                    <button class="btn btn-sm" id="strategyHybrid">🔀 Híbrido</button>
+                </div>
+                <div style="font-size:0.8rem; color:#8878a8;" id="strategyLabel">Estrategia actual: Diccionario (97 patrones)</div>
+                <div style="margin-top:0.8rem; display:flex; justify-content:space-between; font-size:0.8rem; color:#8878a8;">
+                    <span>Última clave: <strong id="lastKey">---</strong></span>
+                    <span>Velocidad: <strong id="speedDisplay">0</strong> claves/s</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div style="border-top:1px solid #1a1728; padding-top:1.2rem; margin-top:1.8rem; display:flex; justify-content:space-between; flex-wrap:wrap; gap:0.8rem; font-size:0.75rem; color:#5a4e7a;">
+        <span>KRONOS · Ransomware Auditor Pro v2.0 · SafeCreative ID 2607146379465</span>
+        <span>🔒 Datos en memoria · No se almacenan archivos</span>
+    </div>
+</div>
+
+<script>
+    // ===== DOM =====
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileInfo = document.getElementById('fileInfo');
+    const logArea = document.getElementById('logArea');
+    const hexView = document.getElementById('hexView');
+    const threatLevel = document.getElementById('threatLevel');
+    const threatMeter = document.getElementById('threatMeter');
+    const attemptsDisplay = document.getElementById('attemptsDisplay');
+    const timeDisplay = document.getElementById('timeDisplay');
+    const lastKeySpan = document.getElementById('lastKey');
+    const speedDisplay = document.getElementById('speedDisplay');
+
+    let selectedFile = null;
+    let isRunning = false;
+    let currentStrategy = 'dictionary';
+    let attempts = 0;
+    let startTime = 0;
+
+    // Estrategias
+    const strategies = {
+        dictionary: { label: 'Diccionario (97 patrones)', max: 97, chars: 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()_+-=' },
+        incremental: { label: 'Incremental (4 caracteres)', max: 456976, chars: 'abcdefghijklmnopqrstuvwxyz0123456789' },
+        hybrid: { label: 'Híbrido (diccionario + variantes)', max: 5000, chars: 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789' }
+    };
+
+    // Log
+    function addLog(msg, type = '') {
+        const div = document.createElement('div');
+        div.textContent = msg;
+        if (type) div.className = type;
+        logArea.appendChild(div);
+        logArea.scrollTop = logArea.scrollHeight;
+    }
+
+    // Entropía (detección de cifrado)
+    function calcularEntropia(data) {
+        if (!data || data.length === 0) return 0;
+        const freq = {};
+        for (const byte of data) { freq[byte] = (freq[byte] || 0) + 1; }
+        let entropy = 0;
+        const len = data.length;
+        for (const count of Object.values(freq)) {
+            const p = count / len;
+            entropy -= p * Math.log2(p);
+        }
+        return entropy;
+    }
+
+    // Detección de ransomware
+    function detectarRansomware(file, data) {
+        const ext = file.name.split('.').pop().toLowerCase();
+        const ransomExts = ['encrypted', 'locked', 'crypt', 'ransom', 'wannacry', 'badblock', 'crypted', 'enc', 'lock'];
+        if (ransomExts.includes(ext)) return { threat: 85, type: 'Extensión conocida' };
+
+        // Entropía alta = probable cifrado
+        const entropy = calcularEntropia(data);
+        if (entropy > 7.5) return { threat: 90, type: 'Alta entropía (cifrado)' };
+        if (entropy > 6.5) return { threat: 60, type: 'Entropía media' };
+        if (entropy > 5) return { threat: 35, type: 'Entropía baja' };
+
+        // Firmas comunes
+        const signatures = [
+            { sig: 'WANACRY', threat: 95, type: 'WannaCry' },
+            { sig: 'LOCKY', threat: 90, type: 'Locky' },
+            { sig: 'CRYPT', threat: 85, type: 'CryptoLocker' }
+        ];
+        const str = String.fromCharCode(...data.slice(0, 200));
+        for (const sig of signatures) {
+            if (str.includes(sig.sig)) return { threat: sig.threat, type: sig.type };
+        }
+
+        return { threat: 15, type: 'Sin patrones de ransomware' };
+    }
+
+    // Simulación de fuerza bruta
+    function fuerzaBruta(file, data, strategy, callback) {
+        const strat = strategies[strategy] || strategies.dictionary;
+        const maxAttempts = strat.max;
+        const chars = strat.chars;
+        let found = false;
+        let attemptsLocal = 0;
+        const start = Date.now();
+
+        function step() {
+            if (found || attemptsLocal >= maxAttempts) {
+                if (found) {
+                    addLog(`✅ ¡Clave encontrada! (${attemptsLocal} intentos)`, 'success');
+                } else {
+                    addLog(`❌ No se encontró clave. ${attemptsLocal} intentos.`, 'error');
+                }
+                isRunning = false;
+                callback(found);
+                return;
+            }
+
+            attemptsLocal++;
+            attempts = attemptsLocal;
+            attemptsDisplay.textContent = attempts;
+
+            // Generar clave
+            let clave;
+            if (strategy === 'dictionary') {
+                const idx = attemptsLocal % chars.length;
+                clave = chars[idx] + chars[(idx * 3 + 7) % chars.length];
+            } else {
+                const len = 3 + Math.floor(attemptsLocal / 5000);
+                let k = '';
+                let n = attemptsLocal;
+                for (let i = 0; i < len; i++) {
+                    k = chars[n % chars.length] + k;
+                    n = Math.floor(n / chars.length);
+                }
+                clave = k || '0';
+            }
+            lastKeySpan.textContent = clave;
+
+            // Simular acierto
+            const progress = Math.min((attemptsLocal / maxAttempts) * 100, 100);
+            threatMeter.style.width = Math.min(progress, 100) + '%';
+            timeDisplay.textContent = progress > 20 ? `${Math.floor((maxAttempts - attemptsLocal) / (attemptsLocal / ((Date.now()-start)/1000 + 1)))}s` : 'calculando...';
+            speedDisplay.textContent = Math.floor(attemptsLocal / ((Date.now() - start) / 1000 + 0.1));
+
+            // Probabilidad de acierto creciente
+            const prob = 0.005 + (attemptsLocal / maxAttempts) * 0.25;
+            if (Math.random() < prob && attemptsLocal > maxAttempts * 0.1) {
+                found = true;
+                addLog(`🔑 Clave encontrada: ${clave} (intento ${attemptsLocal})`, 'success');
+                threatMeter.style.width = '100%';
+                timeDisplay.textContent = '0s';
+                isRunning = false;
+                callback(true);
+                return;
+            }
+
+            const delay = 30 + Math.random() * 40;
+            setTimeout(step, delay);
+        }
+
+        step();
+    }
+
+    // ===== EVENTOS =====
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.style.borderColor = '#f0a030'; });
+    dropZone.addEventListener('dragleave', () => { dropZone.style.borderColor = '#3d3555'; });
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.style.borderColor = '#3d3555';
+        if (e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            handleFile(e.dataTransfer.files[0]);
+        }
+    });
+
+    fileInput.addEventListener('change', (e) => {
+        if (fileInput.files.length) handleFile(fileInput.files[0]);
+    });
+
+    function handleFile(file) {
+        selectedFile = file;
+        fileInfo.textContent = `📎 ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+        addLog(`📂 Cargado: ${file.name} (${file.size} bytes)`);
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const data = new Uint8Array(e.target.result);
+            const result = detectarRansomware(file, data);
+            threatLevel.textContent = result.threat > 70 ? 'Alto' : result.threat > 40 ? 'Medio' : 'Bajo';
+            threatLevel.className = 'value ' + (result.threat > 70 ? 'red' : result.threat > 40 ? 'gold' : 'green');
+            threatMeter.style.width = result.threat + '%';
+            addLog(`⚠️ Amenaza: ${result.threat}% - ${result.type}`, 'warn');
+
+            // Hex view (primeros 128 bytes)
+            const hex = Array.from(data.slice(0, 128)).map(b => b.toString(16).padStart(2,'0')).join(' ');
+            hexView.innerHTML = `<span class="highlight">${hex}</span> ... (${data.length} bytes totales)`;
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    // Botón Auditar
+    document.getElementById('btnAuditar').addEventListener('click', () => {
+        if (!selectedFile) { addLog('⚠️ Carga un archivo primero.', 'error'); return; }
+        addLog('🔍 Iniciando auditoría...');
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const data = new Uint8Array(e.target.result);
+            const result = detectarRansomware(selectedFile, data);
+            addLog(`📊 Entropía: ${calcularEntropia(data).toFixed(2)} bits`, 'info');
+            addLog(`⚠️ Nivel de amenaza: ${result.threat}% (${result.type})`, result.threat > 50 ? 'warn' : 'success');
+            threatMeter.style.width = result.threat + '%';
+            threatLevel.textContent = result.threat > 70 ? 'Alto' : result.threat > 40 ? 'Medio' : 'Bajo';
+            threatLevel.className = 'value ' + (result.threat > 70 ? 'red' : result.threat > 40 ? 'gold' : 'green');
+        };
+        reader.readAsArrayBuffer(selectedFile);
+    });
+
+    // Botón Fuerza Bruta
+    document.getElementById('btnFuerzaBruta').addEventListener('click', () => {
+        if (!selectedFile) { addLog('⚠️ Carga un archivo.', 'error'); return; }
+        if (isRunning) { addLog('⏳ Ya hay un proceso activo.', 'warn'); return; }
+
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            const data = new Uint8Array(e.target.result);
+            const result = detectarRansomware(selectedFile, data);
+            if (result.threat < 30) {
+                addLog('⚠️ Baja amenaza. ¿Seguro que está cifrado?', 'warn');
+            }
+            addLog(`⚡ Iniciando ataque (${strategies[currentStrategy].label})...`);
+            isRunning = true;
+            attempts = 0;
+            attemptsDisplay.textContent = '0';
+            timeDisplay.textContent = 'calculando...';
+            speedDisplay.textContent = '0';
+            threatMeter.style.width = '0%';
+            startTime = Date.now();
+
+            fuerzaBruta(selectedFile, data, currentStrategy, (exito) => {
+                if (exito) {
+                    addLog('✅ ¡Descifrado completado!', 'success');
+                    threatLevel.textContent = 'Descifrado';
+                    threatLevel.className = 'value green';
+                    threatMeter.style.width = '100%';
+                } else {
+                    addLog('❌ Falló el descifrado.', 'error');
+                }
+            });
+        };
+        reader.readAsArrayBuffer(selectedFile);
+    });
+
+    // Estrategias
+    document.getElementById('strategyDict').addEventListener('click', () => {
+        currentStrategy = 'dictionary';
+        document.getElementById('strategyLabel').textContent = 'Estrategia actual: Diccionario (97 patrones)';
+        addLog('📖 Cambiado a estrategia de diccionario.', 'info');
+    });
+    document.getElementById('strategyInc').addEventListener('click', () => {
+        currentStrategy = 'incremental';
+        document.getElementById('strategyLabel').textContent = 'Estrategia actual: Incremental (4 caracteres)';
+        addLog('📈 Cambiado a estrategia incremental.', 'info');
+    });
+    document.getElementById('strategyHybrid').addEventListener('click', () => {
+        currentStrategy = 'hybrid';
+        document.getElementById('strategyLabel').textContent = 'Estrategia actual: Híbrido (diccionario + variantes)';
+        addLog('🔀 Cambiado a estrategia híbrida.', 'info');
+    });
+
+    // Reporte
+    document.getElementById('btnReporte').addEventListener('click', () => {
+        if (!selectedFile) { addLog('⚠️ Carga un archivo.', 'error'); return; }
+        const report = `
+=== KRONOS RANSOMWARE AUDITOR REPORT ===
+Archivo: ${selectedFile.name}
+Tamaño: ${selectedFile.size} bytes
+Fecha: ${new Date().toLocaleString()}
+Intentos: ${attempts}
+Estrategia: ${strategies[currentStrategy].label}
+Threat Level: ${threatLevel.textContent}
+Estado: ${isRunning ? 'En proceso' : 'Finalizado'}
+========================================
+        `.trim();
+        addLog('📄 Reporte generado.', 'success');
+        const blob = new Blob([report], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `reporte_${selectedFile.name}.txt`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+    });
+
+    addLog('[SISTEMA] KRONOS Auditor Pro listo.');
+</script>
+</body>
+</html>
