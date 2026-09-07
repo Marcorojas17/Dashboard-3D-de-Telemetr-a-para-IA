@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KRONOS // Ransomware Auditor Xtreme v3.0</title>
+    <style>
+        /* ===== DISEÑO DE SISTEMA AVANZADO (PRO-LEVEL) ===== */
+        :root {
+            --bg-base: #05040a;
+            --bg-surface: rgba(9, 8, 16, 0.85);
+            --bg-card: rgba(16, 14, 28, 0.6);
+            --bg-card-hover: rgba(26, 23, 44, 0.8);
+            
+            /* Bordes y Separadores de precisión */
+            --border-alpha: rgba(0, 242, 254, 0.08);
+            --border-alpha-bright: rgba(0, 242, 254, 0.25);
+            
+            /* Paleta Tipográfica y Textos */
+            --text-primary: #f1eff9;
+            --text-secondary: #a29cb8;
+            --text-muted: #58536e;
+            
+            /* Paleta del Estado de Riesgo Dinámico */
+            --risk-color: #00f2fe;
+            --risk-shadow: rgba(0, 242, 254, 0.15);
+            --risk-glow-intense: rgba(0, 242, 254, 0.4);
+            
+            /* Variables Controladas por Estado / JS */
+            --chart-percentage: 0%;
+            --progress-width: 0%;
+            --scan-pulse: pulse 2s infinite alternate;
+        }
+
+        /* ===== RESETEO Y OPTIMIZACIÓN DE RENDIMIENTO ===== */
+        * { 
+            margin: 0; 
+            padding: 0; 
+            box-sizing: border-box; 
+            user-select: none;
+        }
+        
+        body {
+            background: var(--bg-base);
+            font-family: 'SF Pro Display', -apple-system, 'Segoe UI', Roboto, Helvetica, sans-serif;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem 1.5rem;
+            color: var(--text-primary);
+            overflow-x: hidden;
+            position: relative;
+        }
+
+        /* Cuadrícula CyberTech de Fondo */
+        body::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background-image: 
+                linear-gradient(rgba(0, 242, 254, 0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 242, 254, 0.015) 1px, transparent 1px);
+            background-size: 32px 32px;
+            background-position: center;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Gradientes Ambientales Avanzados */
+        body::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 5vw 10vh, rgba(0, 242, 254, 0.08) 0%, transparent 40%),
+                radial-gradient(circle at 95vw 90vh, rgba(127, 0, 255, 0.06) 0%, transparent 45%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ===== CONTENEDOR MAESTRO DE LA APLICACIÓN ===== */
+        .app {
+            position: relative;
+            z-index: 1;
+            max-width: 1440px;
+            width: 100%;
+            background: var(--bg-surface);
+            backdrop-filter: blur(40px) saturate(180%);
+            -webkit-backdrop-filter: blur(40px) saturate(180%);
+            border-radius: 28px;
+            padding: 3rem;
+            border: 1px solid var(--border-alpha);
+            box-shadow: 
+                0 0 1px rgba(255, 255, 255, 0.1) inset,
+                0 30px 100px rgba(0, 0, 0, 0.8),
+                0 10px 30px rgba(0, 242, 254, 0.02);
+            transition: border-color 0.4s ease, box-shadow 0.4s ease;
+        }
+
+        .app:hover {
+            border-color: rgba(0, 242, 254, 0.15);
+            box-shadow: 
+                0 0 1px rgba(255, 255, 255, 0.15) inset,
+                0 30px 100px rgba(0, 0, 0, 0.85),
+                0 0 40px rgba(0, 242, 254, 0.04);
+        }
+
+        /* ===== SECCIÓN HEADER (TOP BAR DE OPERACIONES) ===== */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            border-bottom: 1px solid var(--border-alpha);
+            padding-bottom: 2rem;
+            margin-bottom: 2.5rem;
+        }
+
+        .brand-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        /* Indicador de estado del núcleo */
+        .core-status {
+            width: 10px;
+            height: 10px;
+            background: var(--risk-color);
+            border-radius: 50%;
+            box-shadow: 0 0 12px var(--risk-glow-intense);
+            animation: var(--scan-pulse);
+        }
+
+        .title-area h1 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            background: linear-gradient(90deg, var(--text-primary), var(--text-secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .title-area span {
+            font-size: 0.75rem;
+            font-family: monospace;
+            color: var(--text-muted);
+            letter-spacing: 0.3em;
+            text-transform: uppercase;
+            display: block;
+            margin-top: 0.25rem;
+        }
+
+        /* Panel de Información del Sistema en Línea */
+        .system-meta {
+            display: flex;
+            gap: 2rem;
+            font-family: monospace;
+            font-size: 0.8rem;
+        }
+
+        .meta-item {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 0.25rem;
+        }
+
+        .meta-label {
+            color: var(--text-muted);
+        }
+
+        .meta-value {
+            color: var(--risk-color);
+            font-weight: bold;
+            text-shadow: 0 0 8px var(--risk-shadow);
+        }
+
+        /* ===== ANIMACIONES GENERALES ===== */
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 8px var(--risk-shadow); opacity: 0.7; }
+            100% { transform: scale(1.05); box-shadow: 0 0 16px var(--risk-glow-intense); opacity: 1; }
+        }
+
+        /* ===== ADAPTACIÓN A PANTALLAS ===== */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .system-meta {
+                width: 100%;
+                justify-content: space-between;
+            }
+            .meta-item {
+                align-items: flex-start;
+            }
+            .app {
+                padding: 1.5rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app">
+        <!-- SECCIÓN HEADER EXTRA SUPERADA -->
+        <header class="header">
+            <div class="brand-wrapper">
+                <div class="core-status"></div>
+                <div class="title-area">
+                    <h1>Kronos</h1>
+                    <span>Ransomware Auditor Xtreme v3.0</span>
+                </div>
+            </div>
+            
+            <div class="system-meta">
+                <div class="meta-item">
+                    <div class="meta-label">ENGINE STATUS</div>
+                    <div class="meta-value">SECURE_READY</div>
+                </div>
+                <div class="meta-item">
+                    <div class="meta-label">NETWORK NODE</div>
+                    <div class="meta-value">KR-N0X9_L-MX</div>
+                </div>
+            </div>
+        </header>
+    </div>
+
+</body>
+</html>
