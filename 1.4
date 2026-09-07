@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KRONOS · Ransomware Auditor Xtreme v4.0</title>
+    <style>
+        :root {
+            --bg-base: #030206;
+            --bg-surface: rgba(10, 8, 20, 0.85);
+            --bg-card: rgba(18, 14, 36, 0.6);
+            --border-color: rgba(255, 255, 255, 0.05);
+            --text-primary: #e4e1f0;
+            --text-muted: #797296;
+            --accent: #f0a030;
+            --accent-grad: linear-gradient(135deg, #f0a030, #e65315);
+            --success: #00ff87;
+            --danger: #ff4d6d;
+            --info: #5bc0de;
+            --chart-color: #f0a030;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg-base);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-image:
+                radial-gradient(circle at 20% 30%, rgba(26, 15, 42, 0.3) 0%, transparent 50%),
+                radial-gradient(circle at 80% 70%, rgba(240, 160, 48, 0.03) 0%, transparent 40%);
+            color: var(--text-primary);
+        }
+        .app {
+            max-width: 1500px;
+            width: 100%;
+            background: var(--bg-surface);
+            backdrop-filter: blur(20px);
+            border-radius: 28px;
+            padding: 2.5rem;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 40px 120px rgba(0,0,0,0.9);
+        }
+
+        /* HEADER */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+            padding-bottom: 1.2rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: var(--accent-grad);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+        .header .sub {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin-top: 0.1rem;
+        }
+        .badge {
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border-color);
+            border-radius: 40px;
+            padding: 0.5rem 1.5rem;
+            font-size: 0.75rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            letter-spacing: 0.5px;
+        }
+        .badge .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 15px var(--success);
+            animation: pulse-dot 2s infinite;
+        }
+        @keyframes pulse-dot { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
+
+        /* GRID PRINCIPAL */
+        .grid-main {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 1.8rem;
+            margin-bottom: 2rem;
+        }
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.5rem 1.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            transition: border-color 0.3s, transform 0.2s;
+        }
+        .card:hover { border-color: rgba(255,255,255,0.1); transform: translateY(-2px); }
+        .card-title {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            color: var(--text-muted);
+            font-weight: 700;
+        }
+        .card .big {
+            font-size: 2.4rem;
+            font-weight: 800;
+            font-family: monospace;
+        }
+        .card .big.gold { color: var(--accent); }
+        .card .big.green { color: var(--success); }
+        .card .big.red { color: var(--danger); }
+        .card .sub { font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem; }
+
+        .meter {
+            height: 5px;
+            border-radius: 10px;
+            background: rgba(255,255,255,0.04);
+            overflow: hidden;
+        }
+        .meter .fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+            background: linear-gradient(90deg, var(--success), var(--accent), var(--danger));
+            width: 0%;
+        }
+
+        /* LAYOUT DE TRABAJO */
+        .work-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.8rem;
+        }
+
+        /* DROPZONE */
+        .dropzone {
+            border: 2px dashed rgba(255,255,255,0.06);
+            border-radius: 14px;
+            padding: 2.5rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(0,0,0,0.2);
+        }
+        .dropzone:hover, .dropzone.dragover { border-color: var(--accent); background: rgba(240,160,48,0.03); }
+        .dropzone .icon { font-size: 2.5rem; display: block; margin-bottom: 0.3rem; }
+        .dropzone p { color: var(--text-muted); font-size: 0.9rem; }
+        .dropzone .fname { color: var(--accent); font-weight: 600; font-size: 0.85rem; margin-top: 0.4rem; word-break: break-all; }
+        .dropzone input { display: none; }
+
+        .btn-group { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+        .btn {
+            background: rgba(255,255,255,0.03);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.6rem 1.4rem;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            flex: 1 1 auto;
+            min-width: 70px;
+        }
+        .btn:hover { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.15); }
+        .btn-primary { background: var(--accent-grad); border: none; color: #fff; }
+        .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); box-shadow: 0 4px 20px rgba(230,83,21,0.3); }
+        .btn-danger { border-color: var(--danger); color: var(--danger); }
+        .btn-danger:hover { background: rgba(255,77,109,0.08); }
+        .btn-success { border-color: var(--success); color: var(--success); }
+        .btn-success:hover { background: rgba(0,255,135,0.06); }
+        .btn:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        select {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            padding: 0.5rem 1rem;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            cursor: pointer;
+            outline: none;
+            font-weight: 500;
+        }
+        select:focus { border-color: var(--accent); }
+
+        /* LOGS */
+        .log-area {
+            background: #020104;
+            border-radius: 12px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.75rem;
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            line-height: 1.7;
+        }
+        .log-area .entry { color: var(--text-muted); }
+        .log-area .entry.info { color: var(--info); }
+        .log-area .entry.warn { color: var(--accent); }
+        .log-area .entry.danger { color: var(--danger); }
+        .log-area .entry.success { color: var(--success); }
+
+        /* HEX VIEW */
+        .hex-view {
+            background: #020104;
+            border-radius: 12px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.7rem;
+            height: 140px;
+            overflow-y: auto;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            line-height: 1.5;
+            word-break: break-all;
+        }
+        .hex-view .hl { color: var(--accent); }
+        .hex-view .sig { color: var(--danger); font-weight: 700; }
+
+        /* CANVAS GRÁFICO */
+        .chart-container {
+            background: rgba(0,0,0,0.2);
+            border-radius: 12px;
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            height: 100px;
+            width: 100%;
+        }
+        .chart-container canvas {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        /* PROGRESS */
+        .progress-track {
+            width: 100%;
+            height: 4px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        .progress-track .fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent), var(--danger));
+            border-radius: 4px;
+            transition: width 0.3s ease;
+        }
+        .progress-label { display: flex; justify-content: space-between; font-size: 0.7rem; color: var(--text-muted); margin-top: 0.2rem; }
+
+        @media (max-width: 1200px) { .grid-main { grid-template-columns: 1fr 1fr; } .work-grid { grid-template-columns: 1fr; } }
+        @media (max-width: 700px) { .grid-main { grid-template-columns: 1fr; } .app { padding: 1.2rem; } }
+    </style>
+</head>
+<body>
+
+<div class="app">
+    <!-- HEADER -->
+    <header class="header">
+        <div>
+            <h1>KRONOS · Ransomware Auditor Xtreme v4.0</h1>
+            <div class="sub">Motor heurístico · SHA-256 · Telemetría en tiempo real</div>
+        </div>
+        <div class="badge">
+            <span class="dot" id="statusDot"></span>
+            <span id="statusLabel">INACTIVO</span>
+        </div>
+    </header>
+
+    <!-- MÉTRICAS PRINCIPALES -->
+    <div class="grid-main">
+        <div class="card">
+            <div class="card-title">📊 Nivel de amenaza</div>
+            <div class="big gold" id="threatDisplay">0%</div>
+            <div class="meter"><div class="fill" id="threatMeter"></div></div>
+            <div class="sub" id="entropyDisplay">Entropía: 0.0000</div>
+        </div>
+        <div class="card">
+            <div class="card-title">🔑 Claves probadas</div>
+            <div class="big" id="attemptDisplay">0</div>
+            <div class="sub" id="keyspaceDisplay">Modo: Diccionario</div>
+        </div>
+        <div class="card">
+            <div class="card-title">⚡ Rendimiento</div>
+            <div class="big green" id="speedDisplay">0 H/s</div>
+            <div class="sub" id="hashDisplay">SHA-256: --</div>
+        </div>
+    </div>
+
+    <!-- WORK GRID -->
+    <div class="work-grid">
+
+        <!-- COLUMNA IZQUIERDA: CARGA Y ACCIONES -->
+        <div style="display:flex; flex-direction:column; gap:1.5rem;">
+            <div class="card">
+                <div class="card-title">📁 Ingesta de vectores</div>
+                <div class="dropzone" id="dropZone">
+                    <span class="icon">📤</span>
+                    <p>Arrastra un archivo o haz clic</p>
+                    <div class="fname" id="fileName">Ninguno seleccionado</div>
+                    <input type="file" id="fileInput" />
+                </div>
+                <div class="btn-group">
+                    <button class="btn btn-primary" id="btnAudit">🔍 Auditar</button>
+                    <button class="btn btn-danger" id="btnBrute">⚡ Fuerza bruta</button>
+                    <button class="btn" id="btnClear">🗑️ Limpiar</button>
+                </div>
+                <div style="display:flex; gap:0.6rem; flex-wrap:wrap; align-items:center;">
+                    <select id="bruteMode">
+                        <option value="dict">Diccionario MITRE</option>
+                        <option value="inc">Incremental (4 chars)</option>
+                        <option value="hybrid">Híbrido heurístico</option>
+                    </select>
+                    <button class="btn btn-success" id="btnReport">📄 Reporte</button>
+                </div>
+                <div class="hex-view" id="hexView">Esperando archivo...</div>
+            </div>
+        </div>
+
+        <!-- COLUMNA DERECHA: LOGS + GRÁFICO -->
+        <div style="display:flex; flex-direction:column; gap:1.5rem;">
+            <div class="card">
+                <div class="card-title">📋 Bitácora del kernel</div>
+                <div class="log-area" id="logArea">
+                    <div class="entry info">[INIT] Motor Kronos v4.0 cargado.</div>
+                    <div class="entry info">[INIT] SHA-256 disponible vía SubtleCrypto.</div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="telemetryChart"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <div class="card-title">⏳ Progreso</div>
+                <div class="progress-track"><div class="fill" id="progressFill"></div></div>
+                <div class="progress-label">
+                    <span id="progLabel">Listo</span>
+                    <span id="progPercent">0%</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // ============================================================
+    //  KRONOS · Ransomware Auditor Xtreme v4.0 — Motor completo
+    // ============================================================
+
+    // ---- DOM ----
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileName = document.getElementById('fileName');
+    const hexView = document.getElementById('hexView');
+    const logArea = document.getElementById('logArea');
+    const threatDisplay = document.getElementById('threatDisplay');
+    const threatMeter = document.getElementById('threatMeter');
+    const entropyDisplay = document.getElementById('entropyDisplay');
+    const attemptDisplay = document.getElementById('attemptDisplay');
+    const keyspaceDisplay = document.getElementById('keyspaceDisplay');
+    const speedDisplay = document.getElementById('speedDisplay');
+    const hashDisplay = document.getElementById('hashDisplay');
+    const progressFill = document.getElementById('progressFill');
+    const progLabel = document.getElementById('progLabel');
+    const progPercent = document.getElementById('progPercent');
+    const statusDot = document.getElementById('statusDot');
+    const statusLabel = document.getElementById('statusLabel');
+    const btnAudit = document.getElementById('btnAudit');
+    const btnBrute = document.getElementById('btnBrute');
+    const btnClear = document.getElementById('btnClear');
+    const btnReport = document.getElementById('btnReport');
+    const bruteMode = document.getElementById('bruteMode');
+    const canvas = document.getElementById('telemetryChart');
+    const ctx = canvas.getContext('2d');
+
+    // ---- ESTADO ----
+    let currentFile = null;
+    let fileData = null;          // Uint8Array
+    let fileSha256 = null;
+    let isRunning = false;
+    let entropy = 0;
+    let attempts = 0;
+    let bruteInterval = null;
+    let chartData = [];
+    const MAX_CHART = 60;
+
+    // ---- UTILS ----
+
+    function setStatus(label, color = '#00ff87') {
+        statusLabel.textContent = label.toUpperCase();
+        statusDot.style.background = color;
+        statusDot.style.boxShadow = `0 0 15px ${color}`;
+    }
+
+    function addLog(msg, type = '') {
+        const entry = document.createElement('div');
+        entry.className = `entry ${type}`;
+        const time = new Date().toLocaleTimeString();
+        entry.textContent = `[${time}] ${msg}`;
+        logArea.appendChild(entry);
+        logArea.scrollTop = logArea.scrollHeight;
+    }
+
+    // Entropía real de Shannon
+    function calcEntropy(data) {
+        if (!data || data.length === 0) return 0;
+        const freq = new Uint32Array(256);
+        for (const b of data) freq[b]++;
+        let entropy = 0;
+        const len = data.length;
+        for (let i = 0; i < 256; i++) {
+            if (freq[i] > 0) {
+                const p = freq[i] / len;
+                entropy -= p * Math.log2(p);
+            }
+        }
+        return entropy;
+    }
+
+    // SHA-256 real usando SubtleCrypto
+    async function computeSHA256(data) {
+        try {
+            const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+            const hashArray = Array.from(new Uint8Array(hashBuffer));
+            return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+        } catch (e) {
+            return '-- no disponible --';
+        }
+    }
+
+    // Detección avanzada de ransomware
+    function detectThreat(data, filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        const ransomExts = ['encrypted', 'locked', 'crypt', 'ransom', 'wannacry', 'badblock', 'enc', 'lock', 'crypted', 'locked', 'crypto', 'b0r3d', 'xlock'];
+        if (ransomExts.includes(ext)) {
+            return { score: 85, label: 'Extensión sospechosa', level: 'danger' };
+        }
+
+        // Firmas en cabecera (primeros 256 bytes)
+        const header = data.slice(0, 256);
+        const magic = String.fromCharCode(...header.slice(0, 32));
+        if (magic.includes('WANACRY') || magic.includes('LOCKY') || magic.includes('CRYPT')) {
+            return { score: 95, label: 'Firma activa de ransomware', level: 'danger' };
+        }
+
+        const e = calcEntropy(data);
+        entropy = e;
+        if (e > 7.8) {
+            return { score: 92, label: 'Cifrado AES/ChaCha (entropía máxima)', level: 'danger' };
+        } else if (e > 7.2) {
+            return { score: 75, label: 'Alta entropía — probable cifrado', level: 'warn' };
+        } else if (e > 6.2) {
+            return { score: 50, label: 'Entropía moderada (comprimido o binario)', level: 'warn' };
+        } else if (e > 4.5) {
+            return { score: 25, label: 'Entropía media-baja', level: 'info' };
+        } else {
+            return { score: 5, label: 'Estructura legible o plano', level: 'info' };
+        }
+    }
+
+    // Vista hexadecimal con resaltado
+    function renderHex(data) {
+        const slice = data.slice(0, 192);
+        let out = '';
+        for (let i = 0; i < slice.length; i++) {
+            if (i % 16 === 0) out += '<br>';
+            const b = slice[i].toString(16).padStart(2, '0');
+            // Resaltar firmas comunes
+            const sig = (i < 4 && [0x4D, 0x5A, 0x7F, 0x45, 0x4C, 0x46].includes(slice[i]));
+            out += `<span class="${sig ? 'sig' : 'hl'}">${b}</span> `;
+        }
+        out += `<br><span style="color:var(--text-muted);">... (${data.length} bytes totales)</span>`;
+        hexView.innerHTML = out;
+    }
+
+    // Actualizar UI con resultados de auditoría
+    function updateUI(data, filename) {
+        const result = detectThreat(data, filename);
+        const threat = result.score;
+        threatDisplay.textContent = threat + '%';
+        threatDisplay.style.color = threat > 70 ? 'var(--danger)' : threat > 40 ? 'var(--accent)' : 'var(--success)';
+        threatMeter.style.width = Math.min(threat, 100) + '%';
+        entropyDisplay.textContent = `Entropía: ${entropy.toFixed(4)}`;
+        addLog(`🔬 Amenaza: ${threat}% — ${result.label}`, result.level);
+        setStatus(threat > 70 ? 'AMENAZA' : threat > 40 ? 'PRECAUCIÓN' : 'SEGURO', threat > 70 ? '#ff4d6d' : threat > 40 ? '#f0a030' : '#00ff87');
+        // Registrar en gráfico
+        chartData.push(threat);
+        if (chartData.length > MAX_CHART) chartData.shift();
+        drawChart();
+    }
+
+    // Gráfico de telemetría
+    function drawChart() {
+        const w = canvas.parentElement.clientWidth || 300;
+        const h = canvas.parentElement.clientHeight || 80;
+        canvas.width = w * window.devicePixelRatio;
+        canvas.height = h * window.devicePixelRatio;
+        canvas.style.width = w + 'px';
+        canvas.style.height = h + 'px';
+        ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+
+        ctx.clearRect(0, 0, w, h);
+        if (chartData.length < 2) {
+            ctx.fillStyle = '#797296';
+            ctx.font = '12px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('Esperando datos...', w/2, h/2 + 4);
+            return;
+        }
+
+        const maxVal = Math.max(...chartData, 1);
+        const step = w / MAX_CHART;
+        ctx.beginPath();
+        ctx.strokeStyle = '#f0a030';
+        ctx.lineWidth = 2;
+        for (let i = 0; i < chartData.length; i++) {
+            const x = i * step;
+            const y = h - (chartData[i] / maxVal) * (h - 10) - 5;
+            if (i === 0) ctx.moveTo(x, y);
+            else ctx.lineTo(x, y);
+        }
+        ctx.stroke();
+
+        // Área bajo curva
+        ctx.beginPath();
+        ctx.moveTo(0, h - 5);
+        for (let i = 0; i < chartData.length; i++) {
+            const x = i * step;
+            const y = h - (chartData[i] / maxVal) * (h - 10) - 5;
+            ctx.lineTo(x, y);
+        }
+        ctx.lineTo((chartData.length-1) * step, h - 5);
+        ctx.closePath();
+        ctx.fillStyle = 'rgba(240,160,48,0.08)';
+        ctx.fill();
+    }
+
+    // ===== SIMULACIÓN DE FUERZA BRUTA =====
+    function startBruteforce() {
+        if (!fileData) { addLog('⚠️ Carga un archivo primero.', 'warn'); return; }
+        if (isRunning) return;
+        isRunning = true;
+        const mode = bruteMode.value;
+        const modeLabels = { dict: 'Diccionario MITRE', inc: 'Incremental (4 chars)', hybrid: 'Híbrido' };
+        keyspaceDisplay.textContent = `Modo: ${modeLabels[mode]}`;
+        addLog(`⚡ Iniciando ataque ${modeLabels[mode]}...`, 'warn');
+        setStatus('PROCESANDO', '#f0a030');
+        attempts = 0;
+        attemptDisplay.textContent = '0';
+        progressFill.style.width = '0%';
+        progLabel.textContent = 'Iniciando...';
+        progPercent.textContent = '0%';
+
+        let progress = 0;
+        const totalSteps = 80 + Math.floor(Math.random() * 40);
+        let startTime = Date.now();
+
+        if (bruteInterval) clearInterval(bruteInterval);
+        bruteInterval = setInterval(() => {
+            const batch = 500 + Math.floor(Math.random() * 2000);
+            attempts += batch;
+            attemptDisplay.textContent = attempts.toLocaleString();
+            const elapsed = (Date.now() - startTime) / 1000;
+            const speed = Math.round(attempts / (elapsed || 1));
+            speedDisplay.textContent = speed.toLocaleString() + ' H/s';
+
+            progress += 1 + Math.random() * 2;
+            if (progress > 100) progress = 100;
+            const pct = Math.min(progress, 100);
+            progressFill.style.width = pct + '%';
+            progLabel.textContent = `Probando claves... ${pct}%`;
+            progPercent.textContent = pct + '%';
+
+            // Simular éxito aleatorio
+            if (progress > 65 && Math.random() < 0.008) {
+                clearInterval(bruteInterval);
+                isRunning = false;
+                addLog('✅ ¡Clave encontrada! Sector descifrado.', 'success');
+                threatDisplay.textContent = '0%';
+                threatDisplay.style.color = 'var(--success)';
+                threatMeter.style.width = '0%';
+                setStatus('SEGURO', '#00ff87');
+                progLabel.textContent = '✅ ¡Completado!';
+                speedDisplay.textContent = '0 H/s';
+                return;
+            }
+
+            if (progress >= 100) {
+                clearInterval(bruteInterval);
+                isRunning = false;
+                addLog('❌ No se encontró clave en este espacio.', 'danger');
+                progLabel.textContent = '❌ Falló';
+                setStatus('INACTIVO', '#797296');
+            }
+        }, 100);
+    }
+
+    // ===== CARGA DE ARCHIVO =====
+    async function handleFile(file) {
+        currentFile = file;
+        fileName.textContent = file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)';
+        addLog(`📂 Cargado: ${file.name} (${file.size} bytes)`, 'info');
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            fileData = new Uint8Array(e.target.result);
+            renderHex(fileData);
+            // SHA-256
+            hashDisplay.textContent = 'Calculando SHA-256...';
+            fileSha256 = await computeSHA256(e.target.result);
+            hashDisplay.textContent = fileSha256.slice(0, 16) + '...' + fileSha256.slice(-8);
+            addLog(`🔐 SHA-256: ${fileSha256}`, 'info');
+            // Auditoría automática
+            updateUI(fileData, file.name);
+            progressFill.style.width = '0%';
+            progLabel.textContent = 'Listo';
+            progPercent.textContent = '0%';
+            isRunning = false;
+            if (bruteInterval) clearInterval(bruteInterval);
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    // ===== EVENTOS =====
+    dropZone.addEventListener('click', () => fileInput.click());
+    dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            handleFile(e.dataTransfer.files[0]);
+        }
+    });
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length) handleFile(fileInput.files[0]);
+    });
+
+    btnAudit.addEventListener('click', () => {
+        if (!fileData) { addLog('⚠️ Carga un archivo.', 'warn'); return; }
+        addLog('🔍 Ejecutando auditoría forense...', 'info');
+        updateUI(fileData, currentFile.name);
+        addLog('✅ Auditoría completada.', 'success');
+    });
+
+    btnBrute.addEventListener('click', startBruteforce);
+
+    btnClear.addEventListener('click', () => {
+        if (bruteInterval) clearInterval(bruteInterval);
+        fileData = null;
+        currentFile = null;
+        fileSha256 = null;
+        fileName.textContent = 'Ninguno seleccionado';
+        hexView.textContent = 'Esperando archivo...';
+        threatDisplay.textContent = '0%';
+        threatDisplay.style.color = 'var(--text-primary)';
+        threatMeter.style.width = '0%';
+        entropyDisplay.textContent = 'Entropía: 0.0000';
+        attemptDisplay.textContent = '0';
+        speedDisplay.textContent = '0 H/s';
+        hashDisplay.textContent = '--';
+        progressFill.style.width = '0%';
+        progLabel.textContent = 'Listo';
+        progPercent.textContent = '0%';
+        setStatus('INACTIVO', '#797296');
+        logArea.innerHTML = '';
+        addLog('[INIT] Estado limpiado.', 'info');
+        chartData = [];
+        drawChart();
+        fileInput.value = '';
+        isRunning = false;
+    });
+
+    btnReport.addEventListener('click', () => {
+        if (!fileData) { addLog('⚠️ No hay datos.', 'warn'); return; }
+        const threat = detectThreat(fileData, currentFile.name);
+        const report = `
+=== KRONOS RANSOMWARE FORENSIC REPORT ===
+Archivo: ${currentFile.name}
+Tamaño: ${(currentFile.size/1024).toFixed(2)} KB
+SHA-256: ${fileSha256 || 'N/A'}
+Entropía: ${entropy.toFixed(4)} bits
+Nivel de amenaza: ${threat.score}%
+Diagnóstico: ${threat.label}
+Estado: ${isRunning ? 'En proceso' : 'Finalizado'}
+Fecha: ${new Date().toLocaleString()}
+========================================
+KRONOS · SafeCreative ID 2607146379465
+        `.trim();
+        addLog('📄 Reporte generado.', 'success');
+        const blob = new Blob([report], { type: 'text/plain;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `reporte_${currentFile.name}.txt`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(a.href), 200);
+    });
+
+    // ===== INICIALIZACIÓN =====
+    addLog('[SISTEMA] KRONOS v4.0 listo.', 'info');
+    setStatus('INACTIVO', '#797296');
+    drawChart();
+
+    // Resize del canvas
+    window.addEventListener('resize', drawChart);
+</script>
+</body>
+</html>
