@@ -1,0 +1,622 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KRONOS · Telemetría IA 3D Pro</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #08070e; font-family: 'Segoe UI', sans-serif; }
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            gap: 0.6rem;
+            pointer-events: none;
+        }
+        #ui > * { pointer-events: auto; }
+        .badge {
+            background: rgba(18,16,30,0.85);
+            border: 1px solid #2a253a;
+            border-radius: 40px;
+            padding: 0.5rem 1.5rem;
+            color: #c8c0d8;
+            font-size: 0.85rem;
+            backdrop-filter: blur(8px);
+            display: inline-block;
+        }
+        .badge strong { color: #f0a030; }
+
+        #controls {
+            position: absolute;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            z-index: 10;
+            display: flex;
+            gap: 0.8rem;
+            flex-wrap: wrap;
+            justify-content: center;
+            background: rgba(18,16,30,0.8);
+            padding: 0.8rem 1.5rem;
+            border-radius: 60px;
+            border: 1px solid #2a253a;
+            backdrop-filter: blur(12px);
+        }
+        #controls button {
+            background: transparent;
+            border: 1px solid #3d3555;
+            color: #ddd8e8;
+            padding: 0.4rem 1.2rem;
+            border-radius: 30px;
+            cursor: pointer;
+            transition: 0.3s;
+            font-weight: 500;
+            font-size: 0.8rem;
+        }
+        #controls button:hover { background: #f0a030; color: #08070e; border-color: #f0a030; }
+        #controls button.active { background: #f0a030; color: #08070e; border-color: #f0a030; }
+
+        #stats {
+            position: absolute;
+            bottom: 100px;
+            right: 30px;
+            z-index: 10;
+            background: rgba(18,16,30,0.8);
+            border: 1px solid #2a253a;
+            border-radius: 16px;
+            padding: 1rem 1.5rem;
+            backdrop-filter: blur(8px);
+            font-size: 0.8rem;
+            color: #8878a8;
+            min-width: 160px;
+            font-family: 'Courier New', monospace;
+        }
+        #stats .val { color: #f0f0f8; font-weight: 600; }
+        #stats .gold { color: #f0a030; }
+
+        #chart {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            z-index: 10;
+            background: rgba(18,16,30,0.7);
+            border: 1px solid #1a1728;
+            border-radius: 12px;
+            padding: 8px;
+            backdrop-filter: blur(6px);
+        }
+        #chart canvas {
+            display: block;
+            border-radius: 8px;
+        }
+
+        #fps {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            z-index: 10;
+            color: #5a4e7a;
+            font-size: 0.7rem;
+            background: rgba(18,16,30,0.6);
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            border: 1px solid #1a1728;
+        }
+
+        @media (max-width: 700px) {
+            #controls { bottom: 15px; padding: 0.5rem 1rem; gap: 0.4rem; }
+            #controls button { font-size: 0.7rem; padding: 0.3rem 0.8rem; }
+            #stats { display: none; }
+            #chart { display: none; }
+            .badge { font-size: 0.7rem; padding: 0.3rem 1rem; }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="ui">
+        <div class="badge">🌐 <strong>KRONOS</strong> · Telemetría IA 3D Pro</div>
+        <div class="badge" style="font-size:0.7rem;">⚡ Modo: <span id="modeDisplay">Partículas</span></div>
+    </div>
+    <div id="fps">⚡ 60 FPS</div>
+
+    <div id="stats">
+        <div>Nodos: <span class="val" id="nodeCount">0</span></div>
+        <div>Flujo: <span class="val gold" id="flowRate">0</span> kB/s</div>
+        <div>Picos: <span class="val" id="peakCount">0</span></div>
+        <div style="margin-top:4px; font-size:0.65rem;">📊 <span id="timestamp">--</span></div>
+    </div>
+
+    <div id="chart"><canvas id="miniChart" width="180" height="60"></canvas></div>
+
+    <div id="controls">
+        <button id="modeParticles" class="active">✦ Partículas</button>
+        <button id="modeNetwork">🔗 Red</button>
+        <button id="modeHeatmap">🔥 Mapa de calor</button>
+        <button id="btnPause">⏸ Pausa</button>
+        <button id="btnReset">⟳ Reset</button>
+        <span style="color:#5a4e7a; font-size:0.7rem; display:flex; align-items:center; gap:0.3rem;">
+            <input type="range" id="speedSlider" min="0.2" max="3" step="0.1" value="1" style="width:70px;"> <span id="speedLabel">1x</span>
+        </span>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        // ===== SETUP =====
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x08070e);
+
+        const camera = new THREE.PerspectiveCamera(55, window.innerWidth/window.innerHeight, 0.1, 200);
+        camera.position.set(14, 8, 22);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.0;
+        document.body.appendChild(renderer.domElement);
+
+        // CSS2 Renderer para etiquetas
+        const labelRenderer = new CSS2DRenderer();
+        labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        labelRenderer.domElement.style.position = 'absolute';
+        labelRenderer.domElement.style.top = '0';
+        labelRenderer.domElement.style.left = '0';
+        labelRenderer.domElement.style.pointerEvents = 'none';
+        labelRenderer.domElement.style.zIndex = '5';
+        document.body.appendChild(labelRenderer.domElement);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.06;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.6;
+        controls.target.set(0, 0, 0);
+
+        // ===== ILUMINACIÓN =====
+        const ambient = new THREE.AmbientLight(0x303050, 0.6);
+        scene.add(ambient);
+
+        const keyLight = new THREE.DirectionalLight(0xffeedd, 2.0);
+        keyLight.position.set(12, 20, 8);
+        scene.add(keyLight);
+
+        const fillLight = new THREE.DirectionalLight(0x4488ff, 0.5);
+        fillLight.position.set(-10, -5, 12);
+        scene.add(fillLight);
+
+        const rimLight = new THREE.DirectionalLight(0x80d0aa, 0.4);
+        rimLight.position.set(-5, 10, -15);
+        scene.add(rimLight);
+
+        const pointLight = new THREE.PointLight(0xf0a030, 1.2, 25);
+        pointLight.position.set(0, 4, 6);
+        scene.add(pointLight);
+
+        // ===== GEOMETRÍAS CENTRALES =====
+        // Anillo principal
+        const ringMat = new THREE.MeshStandardMaterial({
+            color: 0xf0a030,
+            emissive: 0xf0a030,
+            emissiveIntensity: 0.15,
+            metalness: 0.85,
+            roughness: 0.25
+        });
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(5.2, 0.045, 20, 120), ringMat);
+        ring.rotation.x = Math.PI / 3.2;
+        ring.rotation.z = 0.2;
+        scene.add(ring);
+
+        // Anillo secundario
+        const ring2Mat = new THREE.MeshStandardMaterial({
+            color: 0x4488ff,
+            emissive: 0x4488ff,
+            emissiveIntensity: 0.1,
+            metalness: 0.7,
+            roughness: 0.35
+        });
+        const ring2 = new THREE.Mesh(new THREE.TorusGeometry(3.6, 0.035, 16, 100), ring2Mat);
+        ring2.rotation.x = -Math.PI / 4.5;
+        ring2.rotation.z = 0.7;
+        scene.add(ring2);
+
+        // Toro anudado interior
+        const knotMat = new THREE.MeshStandardMaterial({
+            color: 0x80d0aa,
+            emissive: 0x80d0aa,
+            emissiveIntensity: 0.08,
+            metalness: 0.5,
+            roughness: 0.5,
+            wireframe: false
+        });
+        const knot = new THREE.Mesh(new THREE.TorusKnotGeometry(1.2, 0.35, 64, 16), knotMat);
+        knot.position.set(0, 0.3, 0);
+        scene.add(knot);
+
+        // ===== PARTÍCULAS (FLUJO DE DATOS) =====
+        const PARTICLE_COUNT = 3500;
+        const positions = new Float32Array(PARTICLE_COUNT * 3);
+        const colors = new Float32Array(PARTICLE_COUNT * 3);
+        const sizes = new Float32Array(PARTICLE_COUNT);
+        const velocities = [];
+        const basePositions = new Float32Array(PARTICLE_COUNT * 3);
+
+        const c1 = new THREE.Color(0xf0a030);
+        const c2 = new THREE.Color(0x4488ff);
+        const c3 = new THREE.Color(0x80d0aa);
+        const c4 = new THREE.Color(0xff6b6b);
+
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+            const radius = 1.5 + Math.random() * 7;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+            const x = radius * Math.sin(phi) * Math.cos(theta);
+            const y = radius * Math.sin(phi) * Math.sin(theta) * 0.55;
+            const z = radius * Math.cos(phi) * 0.75;
+
+            positions[i*3] = x;
+            positions[i*3+1] = y;
+            positions[i*3+2] = z;
+            basePositions[i*3] = x;
+            basePositions[i*3+1] = y;
+            basePositions[i*3+2] = z;
+
+            const mix = Math.random();
+            let col = mix < 0.35 ? c1 : mix < 0.65 ? c2 : mix < 0.85 ? c3 : c4;
+            colors[i*3] = col.r;
+            colors[i*3+1] = col.g;
+            colors[i*3+2] = col.b;
+
+            sizes[i] = 0.06 + Math.random() * 0.22;
+
+            velocities.push({
+                theta: (Math.random() - 0.5) * 0.025,
+                phi: (Math.random() - 0.5) * 0.02,
+                r: (Math.random() - 0.5) * 0.01,
+                phase: Math.random() * Math.PI * 2
+            });
+        }
+
+        const particleGeo = new THREE.BufferGeometry();
+        particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        particleGeo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        particleGeo.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+        const texture = (() => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64; canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            const grad = ctx.createRadialGradient(32,32,0,32,32,32);
+            grad.addColorStop(0, 'rgba(255,255,255,1)');
+            grad.addColorStop(0.2, 'rgba(255,255,255,0.9)');
+            grad.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0,0,64,64);
+            return new THREE.CanvasTexture(canvas);
+        })();
+
+        const particleMat = new THREE.PointsMaterial({
+            size: 0.2,
+            map: texture,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            transparent: true,
+            vertexColors: true,
+            opacity: 0.92,
+            sizeAttenuation: true
+        });
+
+        const particleSystem = new THREE.Points(particleGeo, particleMat);
+        scene.add(particleSystem);
+
+        // ===== RED DE CONEXIONES =====
+        const LINE_COUNT = 800;
+        const linePositions = new Float32Array(LINE_COUNT * 6);
+        const lineColors = new Float32Array(LINE_COUNT * 6);
+        const lineGeo = new THREE.BufferGeometry();
+        lineGeo.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+        lineGeo.setAttribute('color', new THREE.BufferAttribute(lineColors, 3));
+        const lineMat = new THREE.LineBasicMaterial({
+            transparent: true,
+            opacity: 0.12,
+            blending: THREE.AdditiveBlending,
+            vertexColors: true
+        });
+        const lineSystem = new THREE.LineSegments(lineGeo, lineMat);
+        scene.add(lineSystem);
+
+        // ===== ETIQUETAS 3D =====
+        const labels = [];
+        const labelData = [
+            { label: 'Nodo Alpha', x: 5.5, y: 1.2, z: 3.8 },
+            { label: 'Core IA', x: -4.2, y: -0.8, z: 5.5 },
+            { label: 'Flujo datos', x: 0, y: 4.5, z: 0 },
+            { label: 'Storage', x: -5.8, y: -1.5, z: -3.2 },
+            { label: 'API Gateway', x: 4.8, y: -0.5, z: -4.5 }
+        ];
+
+        for (const d of labelData) {
+            const div = document.createElement('div');
+            div.textContent = d.label;
+            div.style.color = '#c8c0d8';
+            div.style.fontSize = '10px';
+            div.style.fontWeight = '600';
+            div.style.background = 'rgba(18,16,30,0.7)';
+            div.style.padding = '2px 10px';
+            div.style.borderRadius = '20px';
+            div.style.border = '1px solid rgba(42,37,58,0.5)';
+            div.style.backdropFilter = 'blur(4px)';
+            div.style.fontFamily = 'Segoe UI, sans-serif';
+            div.style.letterSpacing = '0.5px';
+            div.style.pointerEvents = 'none';
+
+            const label = new CSS2DObject(div);
+            label.position.set(d.x, d.y, d.z);
+            scene.add(label);
+            labels.push(label);
+        }
+
+        // ===== MINI CHART (2D) =====
+        const chartCanvas = document.getElementById('miniChart');
+        const ctx = chartCanvas.getContext('2d');
+        const chartData = [];
+        const MAX_CHART = 40;
+
+        function updateChart(value) {
+            chartData.push(value);
+            if (chartData.length > MAX_CHART) chartData.shift();
+
+            ctx.clearRect(0, 0, 180, 60);
+            ctx.fillStyle = 'rgba(18,16,30,0.3)';
+            ctx.fillRect(0, 0, 180, 60);
+
+            if (chartData.length < 2) return;
+
+            const w = 180 / MAX_CHART;
+            const maxVal = Math.max(...chartData, 1);
+
+            ctx.beginPath();
+            ctx.strokeStyle = '#f0a030';
+            ctx.lineWidth = 1.5;
+            for (let i = 0; i < chartData.length; i++) {
+                const x = i * w;
+                const y = 60 - (chartData[i] / maxVal) * 50 - 5;
+                if (i === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            // Área bajo la curva
+            ctx.beginPath();
+            ctx.moveTo(0, 55);
+            for (let i = 0; i < chartData.length; i++) {
+                const x = i * w;
+                const y = 60 - (chartData[i] / maxVal) * 50 - 5;
+                ctx.lineTo(x, y);
+            }
+            ctx.lineTo((chartData.length-1) * w, 55);
+            ctx.closePath();
+            ctx.fillStyle = 'rgba(240,160,48,0.08)';
+            ctx.fill();
+        }
+
+        // ===== ESTADO =====
+        let paused = false;
+        let currentMode = 'particles';
+        let speed = 1;
+        let frameCount = 0;
+        let flowValue = 0;
+        let time = 0;
+
+        // UI
+        const nodeCountEl = document.getElementById('nodeCount');
+        const flowRateEl = document.getElementById('flowRate');
+        const peakCountEl = document.getElementById('peakCount');
+        const timestampEl = document.getElementById('timestamp');
+
+        // ===== FUNCIÓN DE ACTUALIZACIÓN =====
+        function updateScene() {
+            const pos = particleSystem.geometry.attributes.position.array;
+
+            if (!paused) {
+                time += 0.01 * speed;
+
+                // Actualizar partículas
+                for (let i = 0; i < PARTICLE_COUNT; i++) {
+                    const i3 = i * 3;
+                    let x = pos[i3];
+                    let y = pos[i3+1];
+                    let z = pos[i3+2];
+
+                    const r = Math.sqrt(x*x + y*y + z*z) || 0.001;
+                    const theta = Math.atan2(z, x);
+                    const phi = Math.acos(y / r);
+
+                    const v = velocities[i];
+                    const newTheta = theta + v.theta * 0.7 * speed;
+                    const newPhi = Math.max(0.08, Math.min(Math.PI - 0.08, phi + v.phi * 0.5 * speed));
+                    const newR = Math.max(1.2, Math.min(7.8, r + v.r * 0.4 * speed + 0.003 * Math.sin(time + v.phase)));
+
+                    pos[i3] = newR * Math.sin(newPhi) * Math.cos(newTheta);
+                    pos[i3+1] = newR * Math.cos(newPhi);
+                    pos[i3+2] = newR * Math.sin(newPhi) * Math.sin(newTheta);
+                }
+                particleSystem.geometry.attributes.position.needsUpdate = true;
+
+                // Rotar geometrías
+                ring.rotation.y += 0.0018 * speed;
+                ring2.rotation.y -= 0.0022 * speed;
+                knot.rotation.x += 0.004 * speed;
+                knot.rotation.y += 0.006 * speed;
+
+                // Actualizar líneas (red)
+                if (currentMode === 'network' || currentMode === 'particles') {
+                    const linePos = lineSystem.geometry.attributes.position.array;
+                    const count = LINE_COUNT;
+                    for (let i = 0; i < count; i++) {
+                        const idx1 = Math.floor(Math.random() * PARTICLE_COUNT);
+                        let idx2 = Math.floor(Math.random() * PARTICLE_COUNT);
+                        while (idx2 === idx1) idx2 = Math.floor(Math.random() * PARTICLE_COUNT);
+                        const i1 = idx1 * 3;
+                        const i2 = idx2 * 3;
+                        linePos[i*6] = pos[i1];
+                        linePos[i*6+1] = pos[i1+1];
+                        linePos[i*6+2] = pos[i1+2];
+                        linePos[i*6+3] = pos[i2];
+                        linePos[i*6+4] = pos[i2+1];
+                        linePos[i*6+5] = pos[i2+2];
+                    }
+                    lineSystem.geometry.attributes.position.needsUpdate = true;
+                }
+
+                // Modo red: líneas más visibles
+                lineMat.opacity = currentMode === 'network' ? 0.35 : 0.12;
+
+                // Modo mapa de calor: cambiar colores
+                if (currentMode === 'heatmap') {
+                    const colorsAttr = particleSystem.geometry.attributes.color;
+                    const arr = colorsAttr.array;
+                    for (let i = 0; i < PARTICLE_COUNT; i++) {
+                        const i3 = i * 3;
+                        const r = Math.sqrt(pos[i3]*pos[i3] + pos[i3+1]*pos[i3+1] + pos[i3+2]*pos[i3+2]);
+                        const t = (r - 1.2) / 6.6;
+                        const c = new THREE.Color().setHSL(0.05 + t * 0.6, 0.9, 0.3 + t * 0.5);
+                        arr[i3] = c.r;
+                        arr[i3+1] = c.g;
+                        arr[i3+2] = c.b;
+                    }
+                    colorsAttr.needsUpdate = true;
+                } else {
+                    // Restaurar colores originales
+                    const colorsAttr = particleSystem.geometry.attributes.color;
+                    const arr = colorsAttr.array;
+                    for (let i = 0; i < PARTICLE_COUNT; i++) {
+                        const mix = i / PARTICLE_COUNT;
+                        let col = mix < 0.35 ? c1 : mix < 0.65 ? c2 : mix < 0.85 ? c3 : c4;
+                        arr[i*3] = col.r;
+                        arr[i*3+1] = col.g;
+                        arr[i*3+2] = col.b;
+                    }
+                    colorsAttr.needsUpdate = true;
+                }
+
+                // Actualizar estadísticas
+                if (frameCount % 15 === 0) {
+                    nodeCountEl.textContent = PARTICLE_COUNT;
+                    flowValue = 80 + Math.sin(time * 0.5) * 40 + Math.random() * 30;
+                    flowRateEl.textContent = Math.max(0, Math.round(flowValue));
+                    peakCountEl.textContent = Math.floor(5 + Math.sin(time * 0.3) * 3 + Math.random() * 2);
+                    timestampEl.textContent = new Date().toLocaleTimeString();
+                    updateChart(flowValue);
+                }
+
+                controls.update();
+                frameCount++;
+            }
+        }
+
+        // ===== RENDER LOOP =====
+        function animate() {
+            updateScene();
+
+            renderer.render(scene, camera);
+            labelRenderer.render(scene, camera);
+
+            requestAnimationFrame(animate);
+        }
+        animate();
+
+        // ===== CONTROLES UI =====
+        function setMode(mode) {
+            currentMode = mode;
+            document.getElementById('modeDisplay').textContent =
+                mode === 'particles' ? 'Partículas' :
+                mode === 'network' ? 'Red' : 'Mapa de calor';
+
+            document.querySelectorAll('#controls button').forEach(b => b.classList.remove('active'));
+            const map = { particles: 'modeParticles', network: 'modeNetwork', heatmap: 'modeHeatmap' };
+            document.getElementById(map[mode]).classList.add('active');
+
+            // Ajustes visuales
+            particleMat.size = mode === 'network' ? 0.08 : 0.2;
+            lineMat.opacity = mode === 'network' ? 0.35 : 0.12;
+            if (mode === 'heatmap') {
+                particleMat.size = 0.35;
+                lineMat.opacity = 0.05;
+            }
+        }
+
+        document.getElementById('modeParticles').addEventListener('click', () => setMode('particles'));
+        document.getElementById('modeNetwork').addEventListener('click', () => setMode('network'));
+        document.getElementById('modeHeatmap').addEventListener('click', () => setMode('heatmap'));
+
+        document.getElementById('btnPause').addEventListener('click', function() {
+            paused = !paused;
+            this.textContent = paused ? '▶️ Reanudar' : '⏸ Pausa';
+            controls.autoRotate = !paused;
+        });
+
+        document.getElementById('btnReset').addEventListener('click', () => {
+            const pos = particleSystem.geometry.attributes.position.array;
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                const i3 = i * 3;
+                const radius = 1.5 + Math.random() * 7;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                pos[i3] = radius * Math.sin(phi) * Math.cos(theta);
+                pos[i3+1] = radius * Math.sin(phi) * Math.sin(theta) * 0.55;
+                pos[i3+2] = radius * Math.cos(phi) * 0.75;
+            }
+            particleSystem.geometry.attributes.position.needsUpdate = true;
+            controls.autoRotate = true;
+            paused = false;
+            document.getElementById('btnPause').textContent = '⏸ Pausa';
+            chartData.length = 0;
+            updateChart(0);
+        });
+
+        const speedSlider = document.getElementById('speedSlider');
+        speedSlider.addEventListener('input', () => {
+            speed = parseFloat(speedSlider.value);
+            document.getElementById('speedLabel').textContent = speed.toFixed(1) + 'x';
+        });
+
+        // ===== RESIZE =====
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            labelRenderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // ===== FPS =====
+        let lastFpsUpdate = performance.now();
+        setInterval(() => {
+            const fps = Math.round(1000 / (performance.now() - lastFpsUpdate));
+            document.getElementById('fps').textContent = `⚡ ${fps} FPS`;
+            lastFpsUpdate = performance.now();
+        }, 1000);
+
+        // ===== INICIALIZAR CHART =====
+        for (let i = 0; i < 20; i++) chartData.push(50 + Math.random() * 30);
+        updateChart(80);
+
+        console.log('🔮 KRONOS Telemetry 3D Pro · Modo:', currentMode);
+    </script>
+</body>
+</html>
