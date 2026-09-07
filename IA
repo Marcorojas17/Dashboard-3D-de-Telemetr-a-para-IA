@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Telemetría IA · Flujo 3D</title>
+    <style>
+        body { margin: 0; overflow: hidden; background: #0a080f; font-family: 'Segoe UI', sans-serif; }
+        #info {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            color: #c0b8d0;
+            z-index: 10;
+            background: rgba(10,8,15,0.7);
+            padding: 0.8rem 1.5rem;
+            border-radius: 40px;
+            border: 1px solid #2a253a;
+            pointer-events: none;
+            backdrop-filter: blur(6px);
+            font-size: 0.9rem;
+        }
+        #stats {
+            position: absolute;
+            bottom: 30px;
+            left: 30px;
+            color: #80d0aa;
+            z-index: 10;
+            background: rgba(10,8,15,0.6);
+            padding: 0.6rem 1.2rem;
+            border-radius: 30px;
+            border: 1px solid #2a253a;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            backdrop-filter: blur(4px);
+        }
+        #stats span { color: #f0a030; font-weight: 600; }
+        .controls {
+            position: absolute;
+            bottom: 30px;
+            right: 30px;
+            z-index: 10;
+            display: flex;
+            gap: 0.8rem;
+        }
+        .controls button {
+            background: rgba(20,18,33,0.7);
+            border: 1px solid #3d3555;
+            color: #e0dcec;
+            padding: 0.5rem 1.2rem;
+            border-radius: 30px;
+            cursor: pointer;
+            backdrop-filter: blur(4px);
+            transition: 0.3s;
+            font-weight: 500;
+        }
+        .controls button:hover { background: #f0a030; color: #0b0a12; border-color: #f0a030; }
+        #fps {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            color: #5a4e7a;
+            font-size: 0.7rem;
+            z-index: 10;
+            background: rgba(10,8,15,0.5);
+            padding: 0.2rem 0.8rem;
+            border-radius: 20px;
+            border: 1px solid #2a253a;
+        }
+    </style>
+</head>
+<body>
+    <div id="info">🌐 KRONOS Telemetry · IA Volumetric Data Flow</div>
+    <div id="fps">⚡ 60 FPS</div>
+    <div id="stats">Nodos: <span id="nodeCount">0</span> · Flujo: <span id="flowRate">0</span> kB/s</div>
+    <div class="controls">
+        <button id="btnReset">⟳ Reiniciar flujo</button>
+        <button id="btnPause">⏸ Pausa</button>
+    </div>
+
+    <!-- Import Three.js y OrbitControls desde CDN -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+        // --- Setup ---
+        const scene = new THREE.Scene();
+        scene.background = new THREE.Color(0x0a080f);
+
+        const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.set(12, 6, 18);
+        camera.lookAt(0, 0, 0);
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        document.body.appendChild(renderer.domElement);
+
+        // Controles
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.autoRotate = true;
+        controls.autoRotateSpeed = 0.8;
+        controls.target.set(0, 0, 0);
+
+        // --- Iluminación ---
+        const ambient = new THREE.AmbientLight(0x404060);
+        scene.add(ambient);
+
+        const keyLight = new THREE.DirectionalLight(0xffeebb, 1.8);
+        keyLight.position.set(10, 20, 10);
+        scene.add(keyLight);
+
+        const fillLight = new THREE.DirectionalLight(0x4488ff, 0.6);
+        fillLight.position.set(-10, -5, 10);
+        scene.add(fillLight);
+
+        const pointLight = new THREE.PointLight(0xf0a030, 1.5, 30);
+        pointLight.position.set(0, 5, 5);
+        scene.add(pointLight);
+
+        // --- Geometría central (anillo de datos) ---
+        const ringGeometry = new THREE.TorusGeometry(4.8, 0.04, 16, 100);
+        const ringMaterial = new THREE.MeshStandardMaterial({
+            color: 0xf0a030,
+            emissive: 0xf0a030,
+            emissiveIntensity: 0.2,
+            metalness: 0.9,
+            roughness: 0.3
+        });
+        const ring = new THREE.Mesh(ringGeometry, ringMaterial);
+        ring.rotation.x = Math.PI / 3;
+        ring.rotation.z = 0.3;
+        scene.add(ring);
+
+        // Anillo interior
+        const ring2Geo = new THREE.TorusGeometry(3.2, 0.03, 16, 80);
+        const ring2Mat = new THREE.MeshStandardMaterial({
+            color: 0x4488ff,
+            emissive: 0x4488ff,
+            emissiveIntensity: 0.15,
+            metalness: 0.7,
+            roughness: 0.4
+        });
+        const ring2 = new THREE.Mesh(ring2Geo, ring2Mat);
+        ring2.rotation.x = -Math.PI / 4;
+        ring2.rotation.z = 0.8;
+        scene.add(ring2);
+
+        // --- Sistema de partículas (flujo de datos) ---
+        const PARTICLE_COUNT = 2500;
+        const positions = new Float32Array(PARTICLE_COUNT * 3);
+        const colors = new Float32Array(PARTICLE_COUNT * 3);
+        const sizes = new Float32Array(PARTICLE_COUNT);
+        const velocities = [];
+
+        const color1 = new THREE.Color(0xf0a030);
+        const color2 = new THREE.Color(0x4488ff);
+        const color3 = new THREE.Color(0x80d0aa);
+
+        for (let i = 0; i < PARTICLE_COUNT; i++) {
+            // Distribución esférica con volumen
+            const radius = 2 + Math.random() * 6;
+            const theta = Math.random() * Math.PI * 2;
+            const phi = Math.acos(2 * Math.random() - 1);
+
+            positions[i*3] = radius * Math.sin(phi) * Math.cos(theta);
+            positions[i*3+1] = radius * Math.sin(phi) * Math.sin(theta) * 0.6;
+            positions[i*3+2] = radius * Math.cos(phi) * 0.8;
+
+            // Color basado en posición
+            const mix = Math.random();
+            let col;
+            if (mix < 0.4) col = color1;
+            else if (mix < 0.7) col = color2;
+            else col = color3;
+            colors[i*3] = col.r;
+            colors[i*3+1] = col.g;
+            colors[i*3+2] = col.b;
+
+            sizes[i] = 0.08 + Math.random() * 0.25;
+
+            // Velocidad aleatoria para animación de flujo
+            velocities.push({
+                theta: (Math.random() - 0.5) * 0.02,
+                phi: (Math.random() - 0.5) * 0.015,
+                r: (Math.random() - 0.5) * 0.008
+            });
+        }
+
+        const particleGeometry = new THREE.BufferGeometry();
+        particleGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+        particleGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+        particleGeometry.setAttribute('size', new THREE.BufferAttribute(sizes, 1));
+
+        const particleTexture = (() => {
+            const canvas = document.createElement('canvas');
+            canvas.width = 64;
+            canvas.height = 64;
+            const ctx = canvas.getContext('2d');
+            const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+            gradient.addColorStop(0, 'rgba(255,255,255,1)');
+            gradient.addColorStop(0.3, 'rgba(255,255,255,0.8)');
+            gradient.addColorStop(1, 'rgba(255,255,255,0)');
+            ctx.fillStyle = gradient;
+            ctx.fillRect(0, 0, 64, 64);
+            return new THREE.CanvasTexture(canvas);
+        })();
+
+        const particleMaterial = new THREE.PointsMaterial({
+            size: 0.2,
+            map: particleTexture,
+            blending: THREE.AdditiveBlending,
+            depthWrite: false,
+            transparent: true,
+            vertexColors: true,
+            opacity: 0.9,
+            sizeAttenuation: true
+        });
+
+        const particleSystem = new THREE.Points(particleGeometry, particleMaterial);
+        scene.add(particleSystem);
+
+        // Líneas de conexión (flujo de datos entre nodos)
+        const lineCount = 600;
+        const linePositions = new Float32Array(lineCount * 6);
+        const lineGeo = new THREE.BufferGeometry();
+        lineGeo.setAttribute('position', new THREE.BufferAttribute(linePositions, 3));
+        const lineMat = new THREE.LineBasicMaterial({
+            color: 0x4488ff,
+            transparent: true,
+            opacity: 0.15,
+            blending: THREE.AdditiveBlending
+        });
+        const lineSystem = new THREE.LineSegments(lineGeo, lineMat);
+        scene.add(lineSystem);
+
+        // Función para actualizar líneas
+        function updateLines() {
+            const pos = particleSystem.geometry.attributes.position.array;
+            const linePos = lineSystem.geometry.attributes.position.array;
+            const count = lineCount;
+            for (let i = 0; i < count; i++) {
+                const idx1 = Math.floor(Math.random() * PARTICLE_COUNT);
+                let idx2 = Math.floor(Math.random() * PARTICLE_COUNT);
+                // Evitar autoconexión
+                while (idx2 === idx1) idx2 = Math.floor(Math.random() * PARTICLE_COUNT);
+                const i1 = idx1 * 3;
+                const i2 = idx2 * 3;
+                linePos[i*6] = pos[i1];
+                linePos[i*6+1] = pos[i1+1];
+                linePos[i*6+2] = pos[i1+2];
+                linePos[i*6+3] = pos[i2];
+                linePos[i*6+4] = pos[i2+1];
+                linePos[i*6+5] = pos[i2+2];
+            }
+            lineSystem.geometry.attributes.position.needsUpdate = true;
+        }
+
+        // --- Estado ---
+        let paused = false;
+        let frameCount = 0;
+        let lastFpsUpdate = performance.now();
+
+        // UI
+        const nodeCountEl = document.getElementById('nodeCount');
+        const flowRateEl = document.getElementById('flowRate');
+
+        // --- Animación ---
+        function animate() {
+            if (!paused) {
+                // Actualizar partículas: movimiento orbital
+                const pos = particleSystem.geometry.attributes.position.array;
+                for (let i = 0; i < PARTICLE_COUNT; i++) {
+                    const i3 = i * 3;
+                    let x = pos[i3];
+                    let y = pos[i3+1];
+                    let z = pos[i3+2];
+
+                    // Coordenadas esféricas
+                    const r = Math.sqrt(x*x + y*y + z*z);
+                    const theta = Math.atan2(z, x);
+                    const phi = Math.acos(y / (r || 0.001));
+
+                    const v = velocities[i];
+                    const newTheta = theta + v.theta * 0.8;
+                    const newPhi = Math.max(0.1, Math.min(Math.PI - 0.1, phi + v.phi * 0.6));
+                    const newR = Math.max(1.5, Math.min(8, r + v.r * 0.5));
+
+                    pos[i3] = newR * Math.sin(newPhi) * Math.cos(newTheta);
+                    pos[i3+1] = newR * Math.cos(newPhi);
+                    pos[i3+2] = newR * Math.sin(newPhi) * Math.sin(newTheta);
+                }
+                particleSystem.geometry.attributes.position.needsUpdate = true;
+
+                // Rotar anillos
+                ring.rotation.y += 0.0015;
+                ring2.rotation.y -= 0.002;
+
+                // Actualizar líneas cada ciertos frames
+                if (frameCount % 3 === 0) {
+                    updateLines();
+                }
+
+                // Actualizar estadísticas
+                if (frameCount % 30 === 0) {
+                    nodeCountEl.textContent = PARTICLE_COUNT;
+                    flowRateEl.textContent = (120 + Math.random() * 180).toFixed(0);
+                }
+
+                // Auto-rotar cámara
+                controls.update();
+
+                frameCount++;
+            }
+
+            renderer.render(scene, camera);
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+
+        // --- Controles UI ---
+        document.getElementById('btnReset').addEventListener('click', () => {
+            // Resetear posiciones de partículas
+            const pos = particleSystem.geometry.attributes.position.array;
+            for (let i = 0; i < PARTICLE_COUNT; i++) {
+                const i3 = i * 3;
+                const radius = 2 + Math.random() * 6;
+                const theta = Math.random() * Math.PI * 2;
+                const phi = Math.acos(2 * Math.random() - 1);
+                pos[i3] = radius * Math.sin(phi) * Math.cos(theta);
+                pos[i3+1] = radius * Math.sin(phi) * Math.sin(theta) * 0.6;
+                pos[i3+2] = radius * Math.cos(phi) * 0.8;
+            }
+            particleSystem.geometry.attributes.position.needsUpdate = true;
+            controls.autoRotate = true;
+            document.getElementById('btnPause').textContent = '⏸ Pausa';
+            paused = false;
+        });
+
+        document.getElementById('btnPause').addEventListener('click', function() {
+            paused = !paused;
+            this.textContent = paused ? '▶️ Reanudar' : '⏸ Pausa';
+            controls.autoRotate = !paused;
+        });
+
+        // --- Resize ---
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // FPS counter (simple)
+        setInterval(() => {
+            const fps = Math.round(1000 / (performance.now() - lastFpsUpdate));
+            document.getElementById('fps').textContent = `⚡ ${fps} FPS`;
+            lastFpsUpdate = performance.now();
+        }, 1000);
+
+        // Inicializar líneas
+        setTimeout(updateLines, 200);
+    </script>
+</body>
+</html>
