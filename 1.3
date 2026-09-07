@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KRONOS · Ransomware Auditor Xtreme</title>
+    <style>
+        :root {
+            --bg-main: #06050b;
+            --bg-card: #110e20;
+            --bg-inner: #17132a;
+            --accent: #f0a030;
+            --accent-gradient: linear-gradient(135deg, #ffb444, #e65315);
+            --text-main: #e2def0;
+            --text-muted: #7e779a;
+            --border: #2c2543;
+            --success: #00ff87;
+            --danger: #ff3366;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            background: var(--bg-main);
+            color: var(--text-main);
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            min-height: 100vh;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-image: radial-gradient(circle at 50% 0%, #1c1537 0%, var(--bg-main) 70%);
+        }
+        .app {
+            max-width: 1400px;
+            width: 100%;
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 2.5rem;
+            box-shadow: 0 30px 100px rgba(0,0,0,0.8);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1.5rem;
+        }
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+        .header .status {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            background: var(--bg-inner);
+            padding: 0.5rem 1.5rem;
+            border-radius: 40px;
+            border: 1px solid var(--border);
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+        .header .status .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 12px var(--success);
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse { 0%,100% { transform: scale(0.9); opacity:0.6; } 50% { transform: scale(1.1); opacity:1; box-shadow:0 0 18px var(--success); } }
+
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+        .card {
+            background: var(--bg-inner);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.2rem;
+            transition: transform 0.3s, border-color 0.3s;
+        }
+        .card:hover { border-color: #433963; transform: translateY(-2px); }
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .dropzone {
+            border: 2px dashed #433963;
+            border-radius: 12px;
+            padding: 2.5rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(0,0,0,0.1);
+        }
+        .dropzone:hover, .dropzone.dragover { border-color: var(--accent); background: rgba(240,160,48,0.04); }
+        .dropzone p { font-size: 0.9rem; color: var(--text-muted); margin-top: 0.5rem; }
+        .dropzone .filename { font-size: 0.85rem; color: var(--text-main); font-weight: 600; margin-top: 0.3rem; }
+
+        .btn {
+            background: var(--bg-inner);
+            border: 1px solid var(--border);
+            color: var(--text-main);
+            padding: 0.6rem 1.2rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+        .btn-primary { background: var(--accent-gradient); border: none; color: #fff; }
+        .btn-primary:hover { opacity: 0.9; transform: scale(1.02); }
+        .btn-danger { border-color: var(--danger); color: var(--danger); }
+        .btn-danger:hover { background: rgba(255,51,102,0.1); }
+        .btn-success { border-color: var(--success); color: var(--success); }
+        .btn-success:hover { background: rgba(0,255,135,0.1); }
+        .btn-group { display: flex; gap: 0.6rem; flex-wrap: wrap; }
+
+        .log-monitor {
+            background: #09070f;
+            border-radius: 12px;
+            padding: 1rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.8rem;
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid rgba(250,250,250,0.03);
+            line-height: 1.6;
+        }
+        .log-entry { margin-bottom: 0.3rem; color: var(--text-muted); }
+        .log-entry.info { color: #5bc0de; }
+        .log-entry.warn { color: var(--accent); }
+        .log-entry.danger { color: var(--danger); }
+        .log-entry.success { color: var(--success); }
+
+        .hex-view {
+            background: #09070f;
+            border-radius: 12px;
+            padding: 0.8rem;
+            font-family: 'Courier New', monospace;
+            font-size: 0.7rem;
+            max-height: 90px;
+            overflow-y: auto;
+            border: 1px solid rgba(250,250,250,0.03);
+            word-break: break-all;
+            color: var(--text-muted);
+        }
+        .hex-view .highlight { color: var(--accent); }
+
+        .radial-progress {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: conic-gradient(var(--success) 0%, #221d3a 0%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            flex-shrink: 0;
+        }
+        .radial-progress::after {
+            content: '0%';
+            position: absolute;
+            width: 74px;
+            height: 74px;
+            background: var(--bg-inner);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #fff;
+        }
+        .metrics-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+        }
+        .metric { display: flex; flex-direction: column; }
+        .metric .value { font-size: 1.6rem; font-weight: 700; color: #fff; }
+        .metric .label { font-size: 0.7rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1px; }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.05);
+            border-radius: 10px;
+            overflow: hidden;
+        }
+        .progress-bar .fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, var(--accent), var(--danger));
+            border-radius: 10px;
+            transition: width 0.3s;
+        }
+        .progress-label { font-size: 0.75rem; color: var(--text-muted); display: flex; justify-content: space-between; margin-top: 0.2rem; }
+
+        @media (max-width: 1100px) { .grid-3 { grid-template-columns: 1fr 1fr; } }
+        @media (max-width: 700px) { .grid-3 { grid-template-columns: 1fr; } .app { padding: 1.2rem; } }
+    </style>
+</head>
+<body>
+
+<div class="app">
+    <header class="header">
+        <h1>KRONOS · Ransomware Auditor Xtreme</h1>
+        <div class="status"><span class="dot"></span> HEURÍSTICA ACTIVA · v3.0</div>
+    </header>
+
+    <main class="grid-3">
+        <!-- COLUMNA 1: CARGA Y ANÁLISIS -->
+        <section class="card">
+            <div class="card-title">📁 Análisis de vectores</div>
+            <div class="dropzone" id="dropzone">
+                <span style="font-size:2rem;">📥</span>
+                <p>Arrastra un archivo o haz clic</p>
+                <div class="filename" id="fileName">Ninguno seleccionado</div>
+                <input type="file" id="fileInput" style="display:none;">
+            </div>
+            <div class="btn-group">
+                <button class="btn btn-primary" id="btnAudit">🔍 Auditar</button>
+                <button class="btn btn-danger" id="btnDecrypt">⚡ Descifrar</button>
+                <button class="btn" id="btnClear">🗑️ Limpiar</button>
+            </div>
+            <div class="hex-view" id="hexView">Esperando archivo...</div>
+        </section>
+
+        <!-- COLUMNA 2: LOGS Y PROGRESO -->
+        <section class="card">
+            <div class="card-title">🛡️ Eventos del kernel</div>
+            <div class="log-monitor" id="logMonitor">
+                <div class="log-entry info">[INIT] Motor Kronos v3.0 inicializado.</div>
+                <div class="log-entry info">[INIT] Esperando archivo...</div>
+            </div>
+            <div class="progress-bar"><div class="fill" id="progressFill"></div></div>
+            <div class="progress-label">
+                <span id="progressLabel">Listo</span>
+                <span id="progressPercent">0%</span>
+            </div>
+            <button class="btn btn-success" id="btnReport">📄 Generar reporte</button>
+        </section>
+
+        <!-- COLUMNA 3: MÉTRICAS Y SCORE -->
+        <section class="card">
+            <div class="card-title">📊 Score de seguridad</div>
+            <div class="metrics-row">
+                <div class="metric">
+                    <span class="value" id="threatValue">0%</span>
+                    <span class="label">Amenaza</span>
+                </div>
+                <div class="metric">
+                    <span class="value" id="entropyValue">0.00</span>
+                    <span class="label">Entropía</span>
+                </div>
+                <div class="radial-progress" id="radialChart"></div>
+            </div>
+            <div style="font-size:0.85rem; color:var(--text-muted); line-height:1.5;" id="statusText">Esperando análisis...</div>
+        </section>
+    </main>
+</div>
+
+<script>
+    // ===== DOM REFS =====
+    const dropzone = document.getElementById('dropzone');
+    const fileInput = document.getElementById('fileInput');
+    const fileName = document.getElementById('fileName');
+    const hexView = document.getElementById('hexView');
+    const logMonitor = document.getElementById('logMonitor');
+    const progressFill = document.getElementById('progressFill');
+    const progressLabel = document.getElementById('progressLabel');
+    const progressPercent = document.getElementById('progressPercent');
+    const threatValue = document.getElementById('threatValue');
+    const entropyValue = document.getElementById('entropyValue');
+    const radialChart = document.getElementById('radialChart');
+    const statusText = document.getElementById('statusText');
+
+    const btnAudit = document.getElementById('btnAudit');
+    const btnDecrypt = document.getElementById('btnDecrypt');
+    const btnClear = document.getElementById('btnClear');
+    const btnReport = document.getElementById('btnReport');
+
+    // ===== ESTADO =====
+    let currentFile = null;
+    let fileData = null;          // Uint8Array
+    let isRunning = false;
+    let auditResult = null;
+
+    // ===== FUNCIONES AUXILIARES =====
+
+    function addLog(msg, type = '') {
+        const entry = document.createElement('div');
+        entry.className = `log-entry ${type}`;
+        const time = new Date().toLocaleTimeString();
+        entry.textContent = `[${time}] ${msg}`;
+        logMonitor.appendChild(entry);
+        logMonitor.scrollTop = logMonitor.scrollHeight;
+    }
+
+    // Cálculo de entropía de Shannon
+    function calcEntropy(data) {
+        if (!data || data.length === 0) return 0;
+        const freq = {};
+        for (const b of data) freq[b] = (freq[b] || 0) + 1;
+        let entropy = 0;
+        const len = data.length;
+        for (const count of Object.values(freq)) {
+            const p = count / len;
+            entropy -= p * Math.log2(p);
+        }
+        return entropy;
+    }
+
+    // Detección de ransomware
+    function detectRansomware(data, filename) {
+        const ext = filename.split('.').pop().toLowerCase();
+        const ransomExts = ['encrypted', 'locked', 'crypt', 'ransom', 'wannacry', 'badblock', 'enc', 'lock', 'crypted'];
+        if (ransomExts.includes(ext)) {
+            return { score: 85, message: `Extensión sospechosa: .${ext}`, level: 'danger' };
+        }
+        const entropy = calcEntropy(data);
+        if (entropy > 7.5) {
+            return { score: 90, message: 'Alta entropía (posible cifrado)', level: 'danger' };
+        } else if (entropy > 6.5) {
+            return { score: 60, message: 'Entropía media (datos comprimidos o cifrados)', level: 'warn' };
+        } else if (entropy > 5) {
+            return { score: 30, message: 'Entropía moderada', level: 'info' };
+        } else {
+            return { score: 5, message: 'Baja entropía (estructura normal)', level: 'info' };
+        }
+    }
+
+    // Actualizar UI con resultados
+    function updateUI(data, filename) {
+        const result = detectRansomware(data, filename);
+        auditResult = result;
+        const entropy = calcEntropy(data);
+        const threat = result.score;
+        threatValue.textContent = threat + '%';
+        threatValue.style.color = threat > 70 ? '#ff3366' : threat > 40 ? '#f0a030' : '#00ff87';
+        entropyValue.textContent = entropy.toFixed(2);
+        statusText.textContent = result.message;
+        // Radial chart
+        const percent = Math.min(threat, 100);
+        const color = threat > 70 ? '#ff3366' : threat > 40 ? '#f0a030' : '#00ff87';
+        radialChart.style.background = `conic-gradient(${color} ${percent}%, #221d3a 0%)`;
+        radialChart.querySelector('::after').textContent = percent + '%';
+        // Log
+        addLog(`🔬 Entropía: ${entropy.toFixed(2)} bits · Amenaza: ${threat}%`, result.level);
+    }
+
+    // Vista hexadecimal
+    function showHex(data) {
+        const slice = data.slice(0, 128);
+        const hex = Array.from(slice).map(b => b.toString(16).padStart(2, '0')).join(' ');
+        hexView.innerHTML = `<span class="highlight">${hex}</span> ... (${data.length} bytes totales)`;
+    }
+
+    // Simular descifrado (fuerza bruta)
+    function simulateDecrypt() {
+        if (!fileData) { addLog('⚠️ No hay archivo cargado.', 'warn'); return; }
+        if (isRunning) return;
+        isRunning = true;
+        addLog('⚡ Iniciando ataque de fuerza bruta...', 'warn');
+        progressFill.style.width = '0%';
+        progressLabel.textContent = 'Iniciando...';
+        progressPercent.textContent = '0%';
+        let progress = 0;
+        const interval = setInterval(() => {
+            progress += 1 + Math.floor(Math.random() * 3);
+            if (progress > 100) progress = 100;
+            progressFill.style.width = progress + '%';
+            progressPercent.textContent = progress + '%';
+            progressLabel.textContent = `Probando clave ${progress}/100...`;
+            if (progress === 100) {
+                clearInterval(interval);
+                addLog('✅ ¡Clave encontrada! Archivo recuperado (simulación).', 'success');
+                statusText.textContent = '✅ Descifrado exitoso. El archivo es recuperable.';
+                threatValue.textContent = '0%';
+                threatValue.style.color = '#00ff87';
+                radialChart.style.background = 'conic-gradient(#00ff87 100%, #221d3a 0%)';
+                radialChart.querySelector('::after').textContent = '100%';
+                isRunning = false;
+            }
+        }, 80 + Math.random() * 40);
+    }
+
+    // Cargar archivo
+    function handleFile(file) {
+        currentFile = file;
+        fileName.textContent = file.name + ' (' + (file.size/1024).toFixed(1) + ' KB)';
+        addLog(`📂 Cargado: ${file.name} (${file.size} bytes)`, 'info');
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            fileData = new Uint8Array(e.target.result);
+            showHex(fileData);
+            updateUI(fileData, file.name);
+        };
+        reader.readAsArrayBuffer(file);
+        // Resetear progreso
+        progressFill.style.width = '0%';
+        progressLabel.textContent = 'Listo';
+        progressPercent.textContent = '0%';
+        isRunning = false;
+    }
+
+    // ===== EVENTOS =====
+
+    dropzone.addEventListener('click', () => fileInput.click());
+    dropzone.addEventListener('dragover', (e) => { e.preventDefault(); dropzone.classList.add('dragover'); });
+    dropzone.addEventListener('dragleave', () => dropzone.classList.remove('dragover'));
+    dropzone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropzone.classList.remove('dragover');
+        if (e.dataTransfer.files.length) {
+            fileInput.files = e.dataTransfer.files;
+            handleFile(e.dataTransfer.files[0]);
+        }
+    });
+    fileInput.addEventListener('change', () => {
+        if (fileInput.files.length) handleFile(fileInput.files[0]);
+    });
+
+    btnAudit.addEventListener('click', () => {
+        if (!fileData) { addLog('⚠️ Carga un archivo primero.', 'warn'); return; }
+        addLog('🔍 Iniciando auditoría forense...', 'info');
+        updateUI(fileData, currentFile.name);
+        addLog('✅ Auditoría completada.', 'success');
+    });
+
+    btnDecrypt.addEventListener('click', simulateDecrypt);
+
+    btnClear.addEventListener('click', () => {
+        fileData = null;
+        currentFile = null;
+        fileName.textContent = 'Ninguno seleccionado';
+        hexView.textContent = 'Esperando archivo...';
+        threatValue.textContent = '0%';
+        threatValue.style.color = '#fff';
+        entropyValue.textContent = '0.00';
+        radialChart.style.background = 'conic-gradient(#221d3a 0%, #221d3a 0%)';
+        radialChart.querySelector('::after').textContent = '0%';
+        statusText.textContent = 'Esperando análisis...';
+        progressFill.style.width = '0%';
+        progressLabel.textContent = 'Listo';
+        progressPercent.textContent = '0%';
+        logMonitor.innerHTML = '';
+        addLog('[INIT] Estado limpiado.', 'info');
+        fileInput.value = '';
+        auditResult = null;
+    });
+
+    btnReport.addEventListener('click', () => {
+        if (!fileData) { addLog('⚠️ No hay datos para reportar.', 'warn'); return; }
+        const entropy = calcEntropy(fileData);
+        const threat = auditResult || detectRansomware(fileData, currentFile.name);
+        const report = `=== KRONOS RANSOMWARE FORENSIC REPORT ===
+Archivo: ${currentFile.name}
+Tamaño: ${currentFile.size} bytes
+Entropía: ${entropy.toFixed(2)} bits
+Nivel de amenaza: ${threat.score}%
+Diagnóstico: ${threat.message}
+Estado: ${isRunning ? 'En proceso' : 'Finalizado'}
+Fecha: ${new Date().toLocaleString()}
+========================================`;
+        addLog('📄 Reporte generado.', 'success');
+        const blob = new Blob([report], { type: 'text/plain' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = `reporte_${currentFile.name}.txt`;
+        a.click();
+        URL.revokeObjectURL(a.href);
+    });
+
+    addLog('[SISTEMA] KRONOS Auditor Xtreme listo.', 'info');
+</script>
+</body>
+</html>
