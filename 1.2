@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>KRONOS · Ransomware Auditor Pro</title>
+    <style>
+        :root {
+            --bg-main: #06050b;
+            --bg-card: #110e20;
+            --bg-inner: #17132a;
+            --accent: #f0a030;
+            --accent-gradient: linear-gradient(135deg, #ffb444, #e65315);
+            --text-main: #e2def0;
+            --text-muted: #7e779a;
+            --border: #2c2543;
+            --success: #00ff87;
+            --danger: #ff3366;
+        }
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body {
+            background: var(--bg-main);
+            color: var(--text-main);
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            min-height: 100vh;
+            padding: 1.5rem;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background-image: radial-gradient(circle at 50% 0%, #1c1537 0%, var(--bg-main) 70%);
+        }
+
+        .app {
+            max-width: 1400px;
+            width: 100%;
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 2.5rem;
+            box-shadow: 0 30px 100px rgba(0,0,0,0.8);
+            border: 1px solid var(--border);
+            backdrop-filter: blur(10px);
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+            margin-bottom: 2.5rem;
+            border-bottom: 1px solid var(--border);
+            padding-bottom: 1.5rem;
+        }
+
+        .header h1 {
+            font-size: 2.2rem;
+            font-weight: 800;
+            background: var(--accent-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.5px;
+        }
+
+        .header .status {
+            display: flex;
+            align-items: center;
+            gap: 0.8rem;
+            background: var(--bg-inner);
+            padding: 0.5rem 1.5rem;
+            border-radius: 40px;
+            border: 1px solid var(--border);
+            font-size: 0.85rem;
+            font-weight: 600;
+        }
+
+        .header .status .dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: var(--success);
+            box-shadow: 0 0 12px var(--success);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse { 
+            0%, 100% { transform: scale(0.9); opacity: 0.6; } 
+            50% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 18px var(--success); } 
+        }
+
+        /* El Grid de 3 Columnas optimizado */
+        .grid-3 {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 2rem;
+        }
+
+        .card {
+            background: var(--bg-inner);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 1.8rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.5rem;
+            transition: transform 0.3s ease, border-color 0.3s ease;
+        }
+
+        .card:hover {
+            border-color: #433963;
+            transform: translateY(-2px);
+        }
+
+        .card-title {
+            font-size: 1.1rem;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        /* Columna 1: Dropzone Dinámica */
+        .dropzone {
+            border: 2px dashed #433963;
+            border-radius: 12px;
+            padding: 3rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: rgba(0,0,0,0.1);
+        }
+
+        .dropzone:hover, .dropzone.dragover {
+            border-color: var(--accent);
+            background: rgba(240, 160, 48, 0.04);
+        }
+
+        .dropzone p {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            margin-top: 0.5rem;
+        }
+
+        .btn-audit {
+            background: var(--accent-gradient);
+            color: #fff;
+            border: none;
+            padding: 0.8rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .btn-audit:hover { opacity: 0.9; }
+
+        /* Columna 2: Monitor de Logs en tiempo real */
+        .log-monitor {
+            background: #09070f;
+            border-radius: 12px;
+            padding: 1rem;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.85rem;
+            height: 220px;
+            overflow-y: auto;
+            border: 1px solid rgba(250,250,250,0.03);
+        }
+
+        .log-entry {
+            margin-bottom: 0.5rem;
+            line-height: 1.4;
+            color: var(--text-muted);
+        }
+
+        .log-entry.info { color: #5bc0de; }
+        .log-entry.warn { color: var(--accent); }
+        .log-entry.danger { color: var(--danger); }
+
+        /* Columna 3: Score y Analíticas */
+        .metrics {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(0,0,0,0.1);
+            padding: 1rem;
+            border-radius: 12px;
+        }
+
+        .radial-progress {
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            background: conic-gradient(var(--success) 85%, #221d3a 0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+
+        .radial-progress::after {
+            content: '85%';
+            position: absolute;
+            width: 74px;
+            height: 74px;
+            background: var(--bg-inner);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="app">
+        <header class="header">
+            <h1>KRONOS · Ransomware Auditor Pro</h1>
+            <div class="status">
+                <div class="dot"></div>
+                <span>SISTEMA DE HEURÍSTICA ACTIVO</span>
+            </div>
+        </header>
+
+        <main class="grid-3">
+            <!-- COLUMNA 1: ENTRADA DE AUDITORÍA -->
+            <section class="card">
+                <div class="card-title">📁 Análisis de Vectores</div>
+                <div class="dropzone" id="dropzone">
+                    <span style="font-size: 2rem;">📥</span>
+                    <p>Arrastra binarios o logs aquí</p>
+                    <span style="font-size: 0.75rem; color: var(--text-muted);">o haz clic para explorar</span>
+                    <input type="file" id="fileInput" style="display: none;" multiple />
+                </div>
+                <button class="btn-audit" id="btnRun">Iniciar Auditoría Forzada</button>
+            </section>
+
+            <!-- COLUMNA 2: MONITOR EN TIEMPO REAL -->
+            <section class="card">
+                <div class="card-title">🛡️ Eventos del Kernel (Simulación)</div>
+                <div class="log-monitor" id="logMonitor">
+                    <div class="log-entry info">[04:51:00] Inicializando motores criptográficos Kronos v4.2...</div>
+                    <div class="log-entry">[04:51:02] Escaneando API Hooks en memoria volátil...</div>
+                </div>
+            </section>
+
+            <!-- COLUMNA 3: MÉTRICAS DE ENTRÓPIA -->
+            <section class="card">
+                <div class="card-title">📊 Score de Inmunidad</div>
+                <div class="metrics">
+                    <div>
+                        <div style="font-size: 1.4rem; font-weight:700;">Seguro</div>
+                        <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.2rem;">0 Amenazas detectadas hoy</div>
+                    </div>
+                    <div class="radial-progress" id="riskChart"></div>
+                </div>
+                <div style="font-size: 0.85rem; color: var(--text-muted); line-height: 1.5;">
+                    La tasa de entropía global del almacenamiento se encuentra en niveles óptimos. No se detectan patrones de cifrado masivo repetitivo.
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('fileInput');
+        const logMonitor = document.getElementById('logMonitor');
+        const btnRun = document.getElementById('btnRun');
+        const riskChart = document.getElementById('riskChart');
+
+        // Simular Logs dinámicos
+        function addLog(text, type = '') {
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            const time = new Date().toLocaleTimeString();
+            entry.innerText = `[${time}] ${text}`;
+            logMonitor.appendChild(entry);
+            logMonitor.scrollTop = logMonitor.scrollHeight;
+        }
+
+        // Simulación de auditoría al interactuar
+        function triggerAudit(filesCount = 12) {
+            addLog(`Analizando ${filesCount} vectores sospechosos...`, 'warn');
+            setTimeout(() => addLog('Verificando entropía de cabeceras PE...', 'info'), 600);
+            setTimeout(() => addLog('Validando firmas digitales contra base de datos MITRE...', 'info'), 1300);
+            setTimeout(() => {
+                addLog('AUDITORÍA COMPLETADA: Estructura de archivos limpia. Cero Ransomware.', 'info');
+                riskChart.style.background = 'conic-gradient(var(--success) 100%, #221d3a 0)';
